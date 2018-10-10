@@ -12,11 +12,18 @@ public:
 private:
 	float fWindowHeight, fWindowWidth;
 	void setupUi();
+	void setupEvents();
 	Sprite* bottomSprite;
 	Sprite* mainSprite;
-	bool onButton0Touch(Touch* touch, Event* event);
-	bool onButton1Touch(Touch* touch, Event* event);
-	enum bottomWidgets{eButton0, eButton1, eButton2};
+	Sprite* unitManager;
+	bool onTouch(Touch* touch, Event* event);
+	enum bottomWidgets{eButton0, eButton1, eButton2, eButton3};
+	enum topWidgets{eUnitManager, eEnemyBase, eHomeBase};
+	int touchedSpriteBottom(Vec2 location);
+	void button0Pressed();
+	void button1Pressed();
+	void button2Pressed();
+	void button3Pressed();
 };
 
 #endif // __GAME_SCENE_H__
