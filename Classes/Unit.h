@@ -7,13 +7,13 @@ class Unit : public cocos2d::Sprite
 {
 public:
 	Unit();
-	double power() { return dPower; }
-	void setPower(double power) { dPower = power; }
+	double speed() { return dSpeed; }
+	void setSpeed(double speed) { dSpeed = speed; }
 	double health() { return dHealth; }
 	void setHealth(double health) { dHealth = health; }
 private:
 	double dHealth;
-	double dPower;
+	double dSpeed;
 };
 
 #endif // __UNIT_SCENE_H__

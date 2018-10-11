@@ -25,135 +25,180 @@ bool Game::init()
     setupUi();
     setupEvents();
 
+    dealTiles();
     return true;
 }
 
 void Game::setupUi()
 {
     // Main frames
-    float bottomFrameHeight = fWindowHeight/4.0;
-    float mainFrameHeight = fWindowHeight*(3.0/4.0);
+    float bottomFrameHeight = fWindowHeight*(3.0/4.0);
+    float topFrameHeight = fWindowHeight/4.0;
     SpriteFrame* bottomFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, fWindowWidth, bottomFrameHeight));
-    SpriteFrame* mainFrame = SpriteFrame::create("Blue.png", Rect(0.0, 0.0, fWindowWidth, mainFrameHeight));
+    SpriteFrame* topFrame = SpriteFrame::create("Blue.png", Rect(0.0, 0.0, fWindowWidth, topFrameHeight));
 	bottomSprite = Sprite::create();
     bottomSprite->setSpriteFrame(bottomFrame);
     bottomSprite->setPosition(0, 0);
     bottomSprite->setAnchorPoint(Vec2(0.0, 0.0));
 
-    mainSprite = Sprite::create();
-    mainSprite->setSpriteFrame(mainFrame);
-    mainSprite->setPosition(0, bottomFrameHeight);
-    mainSprite->setAnchorPoint(Vec2(0.0, 0.0));
+    topSprite = Sprite::create();
+    topSprite->setSpriteFrame(topFrame);
+    topSprite->setPosition(0, bottomFrameHeight);
+    topSprite->setAnchorPoint(Vec2(0.0, 0.0));
 
     this->addChild(bottomSprite, 0);
-    this->addChild(mainSprite, 0);
+    this->addChild(topSprite, 0);
 
-    SpriteFrame* unitManagerFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, mainFrameHeight));
-    unitManager = Sprite::create();
-    unitManager->setSpriteFrame(unitManagerFrame);
-    unitManager->setPosition(0,bottomFrameHeight);
-    unitManager->setAnchorPoint(Vec2(0.0,0.0));
-    mainSprite->addChild(unitManager, 0, eUnitManager);
+    SpriteFrame* emptyBottomFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, bottomFrameHeight));
 
-    auto button0 = Sprite::create("GreenSquare.png");
-    button0->setPosition(fWindowWidth/5.0, bottomFrameHeight/2.0);
-    button0->setAnchorPoint(Vec2(0.5, 0.5));
-    bottomSprite->addChild(button0, 0, eButton0);
 
-    auto button1 = Sprite::create("GreenSquare.png");
-    button1->setPosition(fWindowWidth*(2.0/5.0), bottomFrameHeight/2.0);
-    button1->setAnchorPoint(Vec2(0.5, 0.5));
-    bottomSprite->addChild(button1, 0, eButton1);
+    fieldManager = Sprite::create();
+    fieldManager->setSpriteFrame(emptyBottomFrame);
+    fieldManager->setPosition(0,0);
+    fieldManager->setAnchorPoint(Vec2(0.0,0.0));
+    bottomSprite->addChild(fieldManager, 0, eFieldManager);
 
-    auto button2 = Sprite::create("GreenSquare.png");
-    button2->setPosition(fWindowWidth*(3.0/5.0), bottomFrameHeight/2.0);
-    button2->setAnchorPoint(Vec2(0.5, 0.5));
-    bottomSprite->addChild(button2, 0, eButton2);
+    handManager = Sprite::create();
+    handManager->setSpriteFrame(emptyBottomFrame);
+    handManager->setPosition(0,0);
+    handManager->setAnchorPoint(Vec2(0.0,0.0));
+    bottomSprite->addChild(handManager, 0, eHandManager);
 
-    auto button3 = Sprite::create("GreenSquare.png");
-    button3->setPosition(fWindowWidth*(4.0/5.0), bottomFrameHeight/2.0);
-    button3->setAnchorPoint(Vec2(0.5, 0.5));
-    bottomSprite->addChild(button3, 0, eButton3);
+    letterManager = Sprite::create();
+    letterManager->setSpriteFrame(emptyBottomFrame);
+    letterManager->setPosition(0,0);
+    letterManager->setAnchorPoint(Vec2(0.0,0.0));
+    bottomSprite->addChild(letterManager, 0, eLetterManager);
 
-    auto homeBase = Sprite::create("Rectangle.png");
-    homeBase->setPosition(0,0);
-    homeBase->setAnchorPoint(Vec2(0,0));
-    mainSprite->addChild(homeBase, 0, eHomeBase);
+    for (int i = 0; i<10; ++i)
+    {
+        double count = i + 2.0;
+        auto letterHolder = Sprite::create(letterHolderImage);
+        letterHolder->setPosition(fWindowWidth*count/13.0, bottomFrameHeight*(1.0/4.0));
+        letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
+        handManager->addChild(letterHolder, 0, i);
+    }
 
-    auto enemyBase = Sprite::create("Rectangle.png");
-    enemyBase->setPosition(fWindowWidth,0);
-    enemyBase->setAnchorPoint(Vec2(1,0));
-    mainSprite->addChild(enemyBase, 0, eEnemyBase);
+    for (int i = 0; i<10; ++i)
+    {
+        double count = i + 2.0;
+        auto letterHolder = Sprite::create(letterHolderImage);
+        letterHolder->setPosition(fWindowWidth*count/13.0, bottomFrameHeight*(3.0/4.0));
+        letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
+        fieldManager->addChild(letterHolder, 0, i);
+    }
+
+}
+
+void Game::dealTiles()
+{
+    for (int i = 0; i<10; ++i)
+    {
+        auto letter = Sprite::create(letterImage);
+        letter->setPosition(handManager->getChildByTag(i)->getPosition());
+        letter->setAnchorPoint(Vec2(0.5, 0.5));
+        letterManager->addChild(letter, 0, i);
+    }
 }
 
 void Game::setupEvents()
 {
     auto touchListener = EventListenerTouchOneByOne::create();  
-    touchListener->onTouchBegan = CC_CALLBACK_2(Game::onTouch, this);
+    touchListener->onTouchBegan = CC_CALLBACK_2(Game::onTouchStart, this);
+    touchListener->onTouchMoved = CC_CALLBACK_2(Game::onTouchMove, this);
+    touchListener->onTouchEnded = CC_CALLBACK_2(Game::onTouchEnd, this);
     Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(touchListener,bottomSprite);
 }
 
-bool Game::onTouch(Touch* touch, Event* event)
+bool Game::onTouchStart(Touch* touch, Event* event)
 {
-    int spriteTouched = touchedSpriteBottom(touch->getLocation());
-    switch (spriteTouched)
+    if (!bLetterPickedUp)
     {
-        case eButton0:
-            button0Pressed();
-            break;
-        case eButton1:
-            button1Pressed();
-            break;
-        case eButton2:
-            button2Pressed();
-            break;
-        case eButton3:
-            button3Pressed();
-            break;
+        auto currentLocation = touch->getLocation();
+        int spriteTouched = touchedLetter(currentLocation);
+        if (spriteTouched > -1)
+        {
+            bLetterPickedUp = true;
+            int fieldTouched = touchedFieldHolder(currentLocation);
+            int handTouched = touchedHandHolder(currentLocation);
+            if (fieldTouched > -1)
+            {
+                originalLocation = fieldManager->getChildByTag(fieldTouched)->getPosition();
+            }
+            else if (handTouched > -1)
+            {
+                originalLocation = handManager->getChildByTag(handTouched)->getPosition();
+            }
+            else
+            {
+                originalLocation = currentLocation;
+            }
+            lastTouchLocation = currentLocation;
+            currentLetter = letterManager->getChildByTag(spriteTouched);
+        }
     }
     return true;
 }
 
-void Game::button0Pressed()
+bool Game::onTouchMove(Touch* touch, Event* event)
 {
-    auto square2 = Unit::create("PinkSquare.png");
-    square2->setPosition(100,100);
-    square2->setAnchorPoint(Vec2(0.5, 0.5));
-    unitManager->addChild(square2);
-}
-
-void Game::button1Pressed()
-{
-    auto homeBase = mainSprite->getChildByTag(eHomeBase);
-    Vec2 homeLocation = homeBase->getPosition();
-    for (auto unit : unitManager->getChildren())
+    if (bLetterPickedUp)
     {
-        auto action = MoveTo::create(3, homeLocation);
-        unit->runAction(action);
+        lastTouchLocation = touch->getLocation();
+        currentLetter->setPosition(currentLetter->getPosition() + touch->getDelta());
     }
+    return true;
 }
-void Game::button2Pressed()
+bool Game::onTouchEnd(Touch* touch, Event* event)
 {
-    auto enemyBase = mainSprite->getChildByTag(eEnemyBase);
-    Vec2 enemyLocation = enemyBase->getPosition();
-    for (auto unit : unitManager->getChildren())
+    if (bLetterPickedUp)
     {
-        auto action = MoveTo::create(3, enemyLocation);
-        unit->runAction(action);
+        int fieldTouched = touchedFieldHolder(lastTouchLocation);
+        int handTouched = touchedHandHolder(lastTouchLocation);
+
+        if (fieldTouched > -1)
+        {
+            auto action = MoveTo::create(0.25, fieldManager->getChildByTag(fieldTouched)->getPosition());
+            currentLetter->runAction(action);
+        }
+        else if (handTouched > -1)
+        {
+            auto action = MoveTo::create(0.25, handManager->getChildByTag(handTouched)->getPosition());
+            currentLetter->runAction(action);
+        }
+        else
+        {
+            auto action = MoveTo::create(0.25, originalLocation);
+            currentLetter->runAction(action);
+        }
+        bLetterPickedUp = false;
     }
+    return true;
 }
 
-void Game::button3Pressed()
+int Game::touchedFieldHolder(Vec2 location)
 {
-    auto square2 = Unit::create("GreenSquare.png");
-    square2->setPosition(500,200);
-    square2->setAnchorPoint(Vec2(0.5, 0.5));
-    unitManager->addChild(square2);
+    for (auto node : fieldManager->getChildren())
+    {
+        if (node->getBoundingBox().containsPoint(location))
+            return node->getTag();
+    }
+    return -1;
 }
 
-int Game::touchedSpriteBottom(Vec2 location)
+int Game::touchedHandHolder(Vec2 location)
 {
-    for (auto node : bottomSprite->getChildren())
+    for (auto node : handManager->getChildren())
+    {
+        if (node->getBoundingBox().containsPoint(location))
+            return node->getTag();
+    }
+    return -1;
+}
+
+int Game::touchedLetter(Vec2 location)
+{
+    for (auto node : letterManager->getChildren())
     {
         if (node->getBoundingBox().containsPoint(location))
             return node->getTag();
