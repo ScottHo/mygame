@@ -1,5 +1,5 @@
 #include "GameScene.h"
-#include "Unit.h"
+#include "Letter.h"
 #include <iostream>
 
 USING_NS_CC;
@@ -94,7 +94,7 @@ void Game::dealTiles()
 {
     for (int i = 0; i<10; ++i)
     {
-        auto letter = Sprite::create(letterImage);
+        auto letter = Letter::create(letterImage);
         letter->setPosition(handManager->getChildByTag(i)->getPosition());
         letter->setAnchorPoint(Vec2(0.5, 0.5));
         letterManager->addChild(letter, 0, i);

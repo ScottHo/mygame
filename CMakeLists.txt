@@ -56,12 +56,12 @@ include_directories(
 list(APPEND GAME_SOURCE
      Classes/AppDelegate.cpp
      Classes/GameScene.cpp
-     Classes/Unit.cpp
+     Classes/Letter.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
      Classes/GameScene.h
-     Classes/Unit.h
+     Classes/Letter.h
      )
 
 if(ANDROID)
