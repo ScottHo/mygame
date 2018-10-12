@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <random>
 
 USING_NS_CC;
 
@@ -117,8 +118,17 @@ void Game::dealTiles()
 {
     for (int i = 0; i<10; ++i)
     {
-        auto letter = new Letter("B", 3);
-        auto sprite = Sprite::create(letter->value() + ".png");
+        std::string alphabet = "ABCDEFGHIJLMNAOPQRSTUVWXYZ";
+        std::random_device random_device;
+        std::mt19937 engine{random_device()};
+        std::uniform_int_distribution<int> dist(0, alphabet.length() - 1);
+        char randomLetter = alphabet.at(dist(engine));
+        auto letter = new Letter(randomLetter, 1);
+        std::string filename = "";
+        filename += letter->value();
+        filename += ".png";
+        std::cout << filename << "\n";
+        auto sprite = Sprite::create(filename);
         auto holder = handManager->getChildByTag(i);
         sprite->setUserObject(letter);
         sprite->setPosition(holder->getPosition());
