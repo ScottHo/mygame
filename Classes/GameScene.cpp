@@ -1,6 +1,9 @@
 #include "GameScene.h"
 #include "Letter.h"
+#include "Holder.h"
 #include <iostream>
+#include <string>
+#include <memory>
 
 USING_NS_CC;
 
@@ -27,6 +30,22 @@ bool Game::init()
 
     dealTiles();
     return true;
+}
+
+void Game::clearTiles()
+{
+    for (auto node : letterManager->getChildren())
+    {
+        Letter::clearFromNode(node);
+    }
+}
+
+void Game::cleanup()
+{
+    for (auto node : letterManager->getChildren())
+    {
+        Holder::clearFromNode(node);
+    }
 }
 
 void Game::setupUi()
@@ -74,6 +93,8 @@ void Game::setupUi()
     {
         double count = i + 2.0;
         auto letterHolder = Sprite::create(letterHolderImage);
+        auto holder = new Holder(false);
+        letterHolder->setUserObject(holder);
         letterHolder->setPosition(fWindowWidth*count/13.0, bottomFrameHeight*(1.0/4.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         handManager->addChild(letterHolder, 0, i);
@@ -83,6 +104,8 @@ void Game::setupUi()
     {
         double count = i + 2.0;
         auto letterHolder = Sprite::create(letterHolderImage);
+        auto holder = new Holder(false);
+        letterHolder->setUserObject(holder);
         letterHolder->setPosition(fWindowWidth*count/13.0, bottomFrameHeight*(3.0/4.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         fieldManager->addChild(letterHolder, 0, i);
@@ -94,10 +117,13 @@ void Game::dealTiles()
 {
     for (int i = 0; i<10; ++i)
     {
-        auto letter = Letter::create(letterImage);
-        letter->setPosition(handManager->getChildByTag(i)->getPosition());
-        letter->setAnchorPoint(Vec2(0.5, 0.5));
-        letterManager->addChild(letter, 0, i);
+        auto letter = new Letter("B", 3);
+        auto sprite = Sprite::create(letter->value() + ".png");
+        auto holder = handManager->getChildByTag(i);
+        sprite->setUserObject(letter);
+        sprite->setPosition(holder->getPosition());
+        sprite->setAnchorPoint(Vec2(0.5, 0.5));
+        letterManager->addChild(sprite, 0, i);
     }
 }
 
@@ -124,10 +150,12 @@ bool Game::onTouchStart(Touch* touch, Event* event)
             if (fieldTouched > -1)
             {
                 originalLocation = fieldManager->getChildByTag(fieldTouched)->getPosition();
+                currentHolder = fieldManager->getChildByTag(fieldTouched);
             }
             else if (handTouched > -1)
             {
                 originalLocation = handManager->getChildByTag(handTouched)->getPosition();
+                currentHolder = handManager->getChildByTag(handTouched);
             }
             else
             {
@@ -158,12 +186,21 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
 
         if (fieldTouched > -1)
         {
-            auto action = MoveTo::create(0.25, fieldManager->getChildByTag(fieldTouched)->getPosition());
+            auto holder = fieldManager->getChildByTag(fieldTouched);
+            Holder::setValueFromNode(holder, true);
+            Holder::setValueFromNode(currentHolder, false);
+            currentHolder = holder;
+
+            auto action = MoveTo::create(0.25, holder->getPosition());
             currentLetter->runAction(action);
         }
         else if (handTouched > -1)
         {
-            auto action = MoveTo::create(0.25, handManager->getChildByTag(handTouched)->getPosition());
+            auto holder = handManager->getChildByTag(handTouched);
+            Holder::setValueFromNode(holder, true);
+            Holder::setValueFromNode(currentHolder, false);
+            currentHolder = holder;
+            auto action = MoveTo::create(0.25, holder->getPosition());
             currentLetter->runAction(action);
         }
         else
@@ -181,7 +218,11 @@ int Game::touchedFieldHolder(Vec2 location)
     for (auto node : fieldManager->getChildren())
     {
         if (node->getBoundingBox().containsPoint(location))
-            return node->getTag();
+        {
+            if (!Holder::getValueFromNode(node))
+                return node->getTag();
+            break;
+        }
     }
     return -1;
 }
@@ -191,7 +232,11 @@ int Game::touchedHandHolder(Vec2 location)
     for (auto node : handManager->getChildren())
     {
         if (node->getBoundingBox().containsPoint(location))
-            return node->getTag();
+        {
+            if (!Holder::getValueFromNode(node))
+                return node->getTag();
+            break;
+        }
     }
     return -1;
 }

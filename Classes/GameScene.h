@@ -10,6 +10,8 @@ public:
     static Scene* createScene();
     virtual bool init();
     void dealTiles();
+    void clearTiles();
+    void cleanup();
     CREATE_FUNC(Game);
 private:
 	float fWindowHeight, fWindowWidth;
@@ -21,6 +23,7 @@ private:
 	Sprite* fieldManager;
 	Sprite* handManager;
 	Node* currentLetter;
+	Node* currentHolder;
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
 	bool bLetterPickedUp;
