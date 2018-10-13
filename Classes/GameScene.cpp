@@ -4,7 +4,9 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <algorithm>
 #include <random>
+#include <fstream>
 
 USING_NS_CC;
 
@@ -25,7 +27,7 @@ bool Game::init()
     }
     fWindowHeight = Director::getInstance()->getVisibleSize().height;
     fWindowWidth = Director::getInstance()->getVisibleSize().width;
-
+    loadAllWords();
     setupUi();
     setupEvents();
 
@@ -76,18 +78,21 @@ void Game::setupUi()
     fieldManager->setSpriteFrame(emptyBottomFrame);
     fieldManager->setPosition(0,0);
     fieldManager->setAnchorPoint(Vec2(0.0,0.0));
+    fieldManager->setName("Field");
     bottomSprite->addChild(fieldManager, 0, eFieldManager);
 
     handManager = Sprite::create();
     handManager->setSpriteFrame(emptyBottomFrame);
     handManager->setPosition(0,0);
     handManager->setAnchorPoint(Vec2(0.0,0.0));
+    handManager->setName("Hand");
     bottomSprite->addChild(handManager, 0, eHandManager);
 
     letterManager = Sprite::create();
     letterManager->setSpriteFrame(emptyBottomFrame);
     letterManager->setPosition(0,0);
     letterManager->setAnchorPoint(Vec2(0.0,0.0));
+    letterManager->setName("Letter");
     bottomSprite->addChild(letterManager, 0, eLetterManager);
 
     for (int i = 0; i<10; ++i)
@@ -116,14 +121,10 @@ void Game::setupUi()
 
 void Game::dealTiles()
 {
+    std::string randomLetters = generateRandomLetters();
     for (int i = 0; i<10; ++i)
     {
-        std::string alphabet = "ABCDEFGHIJLMNAOPQRSTUVWXYZ";
-        std::random_device random_device;
-        std::mt19937 engine{random_device()};
-        std::uniform_int_distribution<int> dist(0, alphabet.length() - 1);
-        char randomLetter = alphabet.at(dist(engine));
-        auto letter = new Letter(randomLetter, 1);
+        auto letter = new Letter(randomLetters.at(i), 1);
         std::string filename = "";
         filename += letter->value();
         filename += ".png";
@@ -134,6 +135,77 @@ void Game::dealTiles()
         sprite->setPosition(holder->getPosition());
         sprite->setAnchorPoint(Vec2(0.5, 0.5));
         letterManager->addChild(sprite, 0, i);
+    }
+}
+
+std::string Game::generateRandomLetters()
+{
+    std::random_device random_device;
+    std::mt19937 engine{random_device()};
+    std::uniform_int_distribution<int> dist(3, 6);
+    int numVowels = dist(engine);
+    int numConsonants = 10 - numVowels;
+
+    std::string consonant = "BBBBCCCCCDDDDFFFGGGGHHHHJJJLLLLLMMMMMMNNNNNPPPPQQQRRRRSSSSSTTTTVVVWWWXXXZZZ";
+    std::string vowels = "AAAAEEEEIIIIOOOOUUU";
+    std::string ret;
+
+    for (int i = 0; i < numConsonants; i++)
+    {
+        std::mt19937 engine2{random_device()};
+        std::uniform_int_distribution<int> dist2(0, consonant.length() - 1);
+        ret += consonant.at(dist2(engine));    
+    }
+    for (int i = 0; i < numVowels; i++)
+    {
+        std::mt19937 engine2{random_device()};
+        std::uniform_int_distribution<int> dist2(0, vowels.length() - 1);
+        ret += vowels.at(dist2(engine));    
+    }
+    std::random_shuffle(ret.begin(), ret.end());
+    return ret;    
+}
+
+void Game::updateCurrentWord(char letter, int index)
+{
+    currentWord[index] = letter;
+}
+
+void Game::updateValidWord()
+{
+    std::string formattedWord;
+    for (char letter : currentWord)
+    {
+        if (letter != '-')
+        {
+            formattedWord += letter;
+        }
+    }
+    if (formattedWord.length() > 2 && 
+        std::find(vWords.begin(), vWords.end(), formattedWord) != vWords.end())
+    {
+        sValidWord = formattedWord;
+        bIsValidWord = true;
+        std::cout << sValidWord << "\n";
+    }
+    else
+    {
+        sValidWord = "";
+        bIsValidWord = false;
+    }
+}
+
+void Game::loadAllWords()
+{
+    std::ifstream file("Resources/words.txt");
+    if (file.is_open())
+    {
+        std::string line;
+        while (std::getline(file, line))
+        {
+            vWords.push_back(line);
+        }
+        file.close();
     }
 }
 
@@ -169,7 +241,7 @@ bool Game::onTouchStart(Touch* touch, Event* event)
             }
             else
             {
-                originalLocation = currentLocation;
+                std::cout << "something went wrong\n";
             }
             lastTouchLocation = currentLocation;
             currentLetter = letterManager->getChildByTag(spriteTouched);
@@ -197,28 +269,51 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
         if (fieldTouched > -1)
         {
             auto holder = fieldManager->getChildByTag(fieldTouched);
-            Holder::setValueFromNode(holder, true);
-            Holder::setValueFromNode(currentHolder, false);
-            currentHolder = holder;
-
-            auto action = MoveTo::create(0.25, holder->getPosition());
-            currentLetter->runAction(action);
+            if (!Holder::getValueFromNode(holder))
+            {
+                Holder::setValueFromNode(holder, true);
+                Holder::setValueFromNode(currentHolder, false);
+                std::cout << holder->getTag() << " has tile\n";
+                std::cout << currentHolder->getTag() << " has no tile\n";
+                if (currentHolder->getParent()->getName() == "Field")
+                    updateCurrentWord('-', currentHolder->getTag());
+                currentHolder = holder;
+                auto action = MoveTo::create(0.2, holder->getPosition());
+                currentLetter->runAction(action);
+                updateCurrentWord(Letter::getLetterFromNode(currentLetter), fieldTouched);
+            }
+            else
+            {
+                auto action = MoveTo::create(0.2, originalLocation);
+                currentLetter->runAction(action);
+            }
         }
         else if (handTouched > -1)
         {
             auto holder = handManager->getChildByTag(handTouched);
-            Holder::setValueFromNode(holder, true);
-            Holder::setValueFromNode(currentHolder, false);
-            currentHolder = holder;
-            auto action = MoveTo::create(0.25, holder->getPosition());
-            currentLetter->runAction(action);
+            if (!Holder::getValueFromNode(holder))
+            {
+                Holder::setValueFromNode(holder, true);
+                Holder::setValueFromNode(currentHolder, false);
+                if (currentHolder->getParent()->getName() == "Field")
+                    updateCurrentWord('-', currentHolder->getTag());
+                currentHolder = holder;
+                auto action = MoveTo::create(0.2, holder->getPosition());
+                currentLetter->runAction(action);
+            }
+            else
+            {
+                auto action = MoveTo::create(0.2, originalLocation);
+                currentLetter->runAction(action);
+            }
         }
         else
         {
-            auto action = MoveTo::create(0.25, originalLocation);
+            auto action = MoveTo::create(0.2, originalLocation);
             currentLetter->runAction(action);
         }
         bLetterPickedUp = false;
+        updateValidWord();
     }
     return true;
 }
@@ -229,9 +324,7 @@ int Game::touchedFieldHolder(Vec2 location)
     {
         if (node->getBoundingBox().containsPoint(location))
         {
-            if (!Holder::getValueFromNode(node))
-                return node->getTag();
-            break;
+            return node->getTag();
         }
     }
     return -1;
@@ -243,9 +336,7 @@ int Game::touchedHandHolder(Vec2 location)
     {
         if (node->getBoundingBox().containsPoint(location))
         {
-            if (!Holder::getValueFromNode(node))
-                return node->getTag();
-            break;
+            return node->getTag();
         }
     }
     return -1;

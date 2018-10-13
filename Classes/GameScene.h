@@ -12,6 +12,8 @@ public:
     void dealTiles();
     void clearTiles();
     void cleanup();
+    std::string getWord(){ return sValidWord; }
+    bool isValidWord(){ return bIsValidWord; }
     CREATE_FUNC(Game);
 private:
 	float fWindowHeight, fWindowWidth;
@@ -27,16 +29,26 @@ private:
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
 	bool bLetterPickedUp;
+	std::string currentWord = "----------"; // lenght of 10
+	std::string sValidWord;
+	bool bIsValidWord;
+
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);
 	bool onTouchEnd(Touch* touch, Event* event);
-
+	void updateCurrentWord(char letter, int index);
+	void updateValidWord();
 	enum letters{eLetter0, eLetter1, eLetter2, eLetter3, eLetter4,
 		eLetter5, eLetter6, eLetter7, eLetter8, eLetter9};
 	enum managers{eLetterManager, eFieldManager, eHandManager};
 	int touchedLetter(Vec2 location);
 	int touchedHandHolder(Vec2 location);
 	int touchedFieldHolder(Vec2 location);
+	std::string generateRandomLetters();
+	void loadAllWords();
+
+
+	std::vector<std::string> vWords;
 
 	// Resources
 	std::string letterImage = "EmptyLetter.png";
