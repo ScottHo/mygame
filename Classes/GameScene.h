@@ -1,6 +1,7 @@
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
 #include "cocos2d.h"
+#include "ui/CocosGUI.h"
 #include <string>
 USING_NS_CC;
 
@@ -19,33 +20,57 @@ private:
 	float fWindowHeight, fWindowWidth;
 	void setupUi();
 	void setupEvents();
-	Sprite* bottomSprite;
-	Sprite* topSprite;
+
+	// --- UI ---
+	// topFrame
+	Sprite* topFrame;
+	Sprite* gameView;
+	Sprite* tileManager;
+
+	// contextFrame
+	Sprite* contextFrame;
+	Sprite* lettersView;
 	Sprite* letterManager;
 	Sprite* fieldManager;
 	Sprite* handManager;
+	Sprite* buildingView;
+
+	// infoFrame
+	Sprite* infoFrame;
+	Sprite* infoView;
+	Label* moneyLabel;
+
 	Node* currentLetter;
 	Node* currentHolder;
+
+
+	// --- Private Variables ---
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
 	bool bLetterPickedUp;
-	std::string currentWord = "----------"; // lenght of 10
+	std::string currentWord = "---------"; // lenght of 9
 	std::string sValidWord;
 	bool bIsValidWord;
+	std::vector<std::string> vWordsUsed;
+	int money;
+
+
 
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);
 	bool onTouchEnd(Touch* touch, Event* event);
 	void updateCurrentWord(char letter, int index);
 	void updateValidWord();
-	enum letters{eLetter0, eLetter1, eLetter2, eLetter3, eLetter4,
-		eLetter5, eLetter6, eLetter7, eLetter8, eLetter9};
-	enum managers{eLetterManager, eFieldManager, eHandManager};
+	enum gameManagers{eTileManager};
+	enum lettersManagers{eLetterManager, eFieldManager, eHandManager, eSubmitButton};
 	int touchedLetter(Vec2 location);
 	int touchedHandHolder(Vec2 location);
 	int touchedFieldHolder(Vec2 location);
 	std::string generateRandomLetters();
 	void loadAllWords();
+	void updateMoney();
+	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
+
 
 
 	std::vector<std::string> vWords;
@@ -53,6 +78,7 @@ private:
 	// Resources
 	std::string letterImage = "EmptyLetter.png";
 	std::string letterHolderImage = "LetterHolder.png";
+	int numLetters = 9;
 };
 
 #endif // __GAME_SCENE_H__
