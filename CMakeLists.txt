@@ -58,12 +58,16 @@ list(APPEND GAME_SOURCE
      Classes/GameScene.cpp
      Classes/Letter.cpp
      Classes/Holder.cpp
+     Classes/Unit.cpp
+     Classes/Tower.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
      Classes/GameScene.h
      Classes/Letter.h
      Classes/Holder.h
+     Classes/Unit.h
+     Classes/Tower.h
      )
 
 if(ANDROID)

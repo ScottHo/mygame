@@ -13,6 +13,19 @@ void Tower::setDamageFromNode(Node* node, int d)
 	towerPtr->setAttackSpeed(d);
 }
 
+bool Tower::getEnabledFromNode(Node* node)
+{
+	Tower* towerPtr = static_cast<Tower*>(node->getUserObject());
+	bool e = towerPtr->enabled();
+	return e;
+}
+
+void Tower::setEnabledFromNode(Node* node, bool e)
+{
+	Tower* towerPtr = static_cast<Tower*>(node->getUserObject());
+	towerPtr->setEnabled(e);
+}
+
 int Tower::getAttackSpeedFromNode(Node* node)
 {
 	Tower* towerPtr = static_cast<Tower*>(node->getUserObject());

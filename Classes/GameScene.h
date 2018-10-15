@@ -1,5 +1,9 @@
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
+#include "Letter.h"
+#include "Holder.h"
+#include "Unit.h"
+#include "Tower.h"
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include <string>
@@ -9,13 +13,15 @@ class Game : public cocos2d::Layer
 {
 public:
     static Scene* createScene();
-    virtual bool init();
+    virtual bool init() override;
     void dealTiles();
     void clearTiles();
     void cleanup();
     std::string getWord(){ return sValidWord; }
     bool isValidWord(){ return bIsValidWord; }
     CREATE_FUNC(Game);
+    void update(float delta) override;
+
 private:
 	float fWindowHeight, fWindowWidth;
 	void setupUi();
@@ -34,11 +40,13 @@ private:
 	Sprite* fieldManager;
 	Sprite* handManager;
 	Sprite* buildingView;
+	Sprite* loadingZone;
 
 	// infoFrame
 	Sprite* infoFrame;
 	Sprite* infoView;
 	Label* moneyLabel;
+	Label* timeLabel;
 
 	Node* currentLetter;
 	Node* currentHolder;
@@ -52,7 +60,10 @@ private:
 	std::string sValidWord;
 	bool bIsValidWord;
 	std::vector<std::string> vWordsUsed;
+	unsigned int longestWord;
 	int money;
+	bool doCountdown = true;
+	float levelTimer = 15.0;
 
 
 
@@ -70,6 +81,8 @@ private:
 	void loadAllWords();
 	void updateMoney();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
+	Tower* createTower(unsigned int level);
+	void wordPhaseDone();
 
 
 

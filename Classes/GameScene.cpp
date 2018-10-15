@@ -1,16 +1,13 @@
 #include "GameScene.h"
-#include "Letter.h"
-#include "Holder.h"
-#include "Unit.h"
-#include "Tower.h"
+
 #include <iostream>
 #include <string>
 #include <memory>
 #include <algorithm>
 #include <random>
 #include <fstream>
-#include "ui/CocosGUI.h"
-
+#include <sstream>
+#include <iomanip>
 USING_NS_CC;
 
 Scene* Game::createScene()
@@ -34,6 +31,7 @@ bool Game::init()
     setupUi();
     setupEvents();
     dealTiles();
+    this->scheduleUpdate();
     return true;
 }
 
@@ -117,15 +115,23 @@ void Game::setupUi()
 
             Sprite* tile;
             if (((j == 0 or j == rows-1.0) and i < midPoint) or (i == midPoint) or ((j == 1 or j == 3) and i > midPoint))
+            {
                 tile = Sprite::create("Path.png");
+                tile->setName("Path");
+            }
             else
+            {
                 tile = Sprite::create("Grass.png");
+                tile->setName("Grass");
+            }
+
             tile->setPosition(i*tileWidth, j*tileWidth);
             tile->setAnchorPoint(Vec2(0,0));
             tile->setScale(scale, scale);
             tileManager->addChild(tile);
         }
     }
+
     // Enemy Building
     Sprite* homeBase = Sprite::create("Building.png");
     homeBase->setPosition((columns-1)*tileWidth, 0);
@@ -149,8 +155,17 @@ void Game::setupUi()
     buildingView->setName("BuildingView");
     contextFrame->addChild(buildingView, 0);
 
+    SpriteFrame* loadingZoneFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, 100.0, 100.0));
+    loadingZone = Sprite::create();
+    loadingZone->setSpriteFrame(loadingZoneFrame);
+    loadingZone->setPosition(contextFrameWidth/2.0, contextFrameHeight/2.0);
+    loadingZone->setAnchorPoint(Vec2(0.0,0.0));
+    loadingZone->setName("loadingZone");
+    buildingView->addChild(loadingZone, 0);
 
-    SpriteFrame* infoBottomFrame = SpriteFrame::create("Beige.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
+
+
+    SpriteFrame* infoBottomFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
     infoView = Sprite::create();
     infoView->setSpriteFrame(infoBottomFrame);
     infoView->setPosition(0,0);
@@ -166,6 +181,18 @@ void Game::setupUi()
     moneyLabel->setPosition(Vec2(infoFrameWidth*2.0/5.0, infoFrameHeight*4.0/5.0));
     moneyLabel->setAnchorPoint(Vec2(0, 0));
     infoView->addChild(moneyLabel);
+
+    auto timePrefix = Label::createWithSystemFont("0:", "Arial", 16);
+    timePrefix->setPosition(Vec2(infoFrameWidth/5, infoFrameHeight*3.0/5.0));
+    timePrefix->setAnchorPoint(Vec2(0, 0));
+    infoView->addChild(timePrefix);
+    timeLabel = Label::createWithSystemFont("", "Arial", 16);
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(0) << levelTimer;
+    timeLabel->setString(ss.str());
+    timeLabel->setPosition(Vec2(infoFrameWidth*2.0/5.0, infoFrameHeight*3.0/5.0));
+    timeLabel->setAnchorPoint(Vec2(0, 0));
+    infoView->addChild(timeLabel);
 
     SpriteFrame* emptyContextFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, contextFrameWidth, contextFrameHeight));
     fieldManager = Sprite::create();
@@ -221,6 +248,43 @@ void Game::setupUi()
     }
 }
 
+void Game::update(float delta)
+{
+    if (doCountdown)
+    {
+        levelTimer -= delta;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(0) << levelTimer;
+        timeLabel->setString(ss.str());
+        if (levelTimer <= 0.05)
+        {
+            wordPhaseDone();
+        }
+    }
+}
+
+void Game::wordPhaseDone()
+{
+    doCountdown = false;
+    Tower* t = createTower(longestWord);
+    Sprite* newTower = Sprite::create("BaseTower.png");
+    newTower->setPosition(loadingZone->getPosition());
+    newTower->setAnchorPoint(Vec2(0,0));
+    newTower->setUserObject(t);
+    tileManager->addChild(newTower);
+    buildingView->setLocalZOrder(1);
+
+    longestWord = 0;
+    sValidWord = "";
+    bIsValidWord = false;
+}
+
+Tower* Game::createTower(unsigned int level)
+{
+    Tower* tower = new Tower(1, 1, 1, false);
+    return tower;
+}
+
 void Game::dealTiles()
 {
     std::string randomLetters = generateRandomLetters();
@@ -240,7 +304,6 @@ void Game::dealTiles()
         letterManager->addChild(sprite, 0, i);
     }
 }
-
 std::string Game::generateRandomLetters()
 {
     std::random_device random_device;
@@ -340,14 +403,16 @@ void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
                     else if (sValidWord.length() ==5)
                         money += 3;
                     else if (sValidWord.length() ==6)
-                        money += 4;
-                    else if (sValidWord.length() ==7)
                         money += 5;
+                    else if (sValidWord.length() ==7)
+                        money += 7;
                     else if (sValidWord.length() ==8)
                         money += 10;
                     else 
                         money += 20;
                     moneyLabel->setString(std::to_string(money));
+                    if (sValidWord.length() > longestWord)
+                        longestWord = sValidWord.length();
                 }
             }
             break;
