@@ -32,6 +32,7 @@ bool Game::init()
     setupEvents();
     dealTiles();
     this->scheduleUpdate();
+    currentPhase = stWord;
     return true;
 }
 
@@ -602,15 +603,28 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
     }
     else if (currentPhase == stBuild)
     {
+
+        // CLEAN THIS UP PLEASE
         if (bTowerPickedUp)
         {
-            int tileTouched = touchedTile(lastTouchLocation);
+            int tileTouched = touchedTile(tileManager->convertToNodeSpace(lastTouchLocation));
             if (tileTouched > -1)
             {
                 auto tile = tileManager->getChildByTag(tileTouched);
-                Vec2 newLocation = tileManager->convertToWorldSpace(tile->getPosition());
-                auto action = MoveTo::create(0.2, newLocation);
-                currentTower->runAction(action);
+                if (tile->getName() == "Grass")
+                {
+                    Tower::setEnabledFromNode(currentTower, true);
+                    Vec2 newLocation = tileManager->convertToWorldSpace(tile->getPosition());
+                    auto action = MoveTo::create(0.2, newLocation);
+                    currentTower->runAction(action);
+                    std::cout << "tile moved to tile " << tileTouched << "\n";
+                }
+                else
+                {
+                    auto action = MoveTo::create(0.2, originalLocation);
+                    currentTower->runAction(action);
+
+                }
             }
             else
             {
