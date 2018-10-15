@@ -28,6 +28,9 @@ private:
 	void setupEvents();
 
 	// --- UI ---
+	// globalFrame
+	Sprite* globalFrame;
+	Sprite* towerManager;
 	// topFrame
 	Sprite* topFrame;
 	Sprite* gameView;
@@ -50,12 +53,14 @@ private:
 
 	Node* currentLetter;
 	Node* currentHolder;
+	Node* currentTower;
 
 
 	// --- Private Variables ---
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
 	bool bLetterPickedUp;
+	bool bTowerPickedUp;
 	std::string currentWord = "---------"; // lenght of 9
 	std::string sValidWord;
 	bool bIsValidWord;
@@ -63,7 +68,7 @@ private:
 	unsigned int longestWord;
 	int money;
 	bool doCountdown = true;
-	float levelTimer = 15.0;
+	float levelTimer = 3.0;
 
 
 
@@ -72,17 +77,24 @@ private:
 	bool onTouchEnd(Touch* touch, Event* event);
 	void updateCurrentWord(char letter, int index);
 	void updateValidWord();
-	enum gameManagers{eTileManager};
-	enum lettersManagers{eLetterManager, eFieldManager, eHandManager, eSubmitButton};
+	enum ePhases{stWait, stWord, stBuild, stKill};
+	ePhases currentPhase;
+	enum eGameManagers{eTileManager};
+	enum eLettersManagers{eLetterManager, eFieldManager, eHandManager, eSubmitButton};
 	int touchedLetter(Vec2 location);
+	int touchedTile(Vec2 location);
+	int touchedTower(Vec2 location);
 	int touchedHandHolder(Vec2 location);
 	int touchedFieldHolder(Vec2 location);
 	std::string generateRandomLetters();
 	void loadAllWords();
 	void updateMoney();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
+	void onDone(Ref* sender, ui::Widget::TouchEventType type);
+
 	Tower* createTower(unsigned int level);
 	void wordPhaseDone();
+	void buildPhaseDone();
 
 
 

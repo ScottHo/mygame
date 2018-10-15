@@ -74,7 +74,6 @@ void Game::setupUi()
     infoFrame->setAnchorPoint(Vec2(0.0, 0.0));
     this->addChild(infoFrame, 0);
 
-
     SpriteFrame* topSpriteFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, topFrameHeight));
     topFrame = Sprite::create();
     topFrame->setSpriteFrame(topSpriteFrame);
@@ -82,6 +81,18 @@ void Game::setupUi()
     topFrame->setAnchorPoint(Vec2(0.0, 0.0));
     this->addChild(topFrame, 0);
 
+    SpriteFrame* emptyWindowFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
+    globalFrame = Sprite::create();
+    globalFrame->setSpriteFrame(emptyWindowFrame);
+    globalFrame->setPosition(0, 0);
+    globalFrame->setAnchorPoint(Vec2(0.0, 0.0));
+    this->addChild(globalFrame, 0);
+
+    towerManager = Sprite::create();
+    towerManager->setSpriteFrame(emptyWindowFrame);
+    towerManager->setPosition(0, 0);
+    towerManager->setAnchorPoint(Vec2(0.0, 0.0));
+    this->addChild(towerManager, 0);
 
     SpriteFrame* gameFrame = SpriteFrame::create("Blue.png", Rect(0.0, 0.0, fWindowWidth, topFrameHeight));
     gameView = Sprite::create();
@@ -105,6 +116,7 @@ void Game::setupUi()
     std::cout << tileWidth << " = tilesize\n";
     float scale = tileWidth/100.0;
     int midPoint = 5;
+    int tileCounter = 0;
 
     for (int i = 0; i < columns; ++i)
     {
@@ -128,7 +140,8 @@ void Game::setupUi()
             tile->setPosition(i*tileWidth, j*tileWidth);
             tile->setAnchorPoint(Vec2(0,0));
             tile->setScale(scale, scale);
-            tileManager->addChild(tile);
+            tileManager->addChild(tile, 0, tileCounter);
+            ++tileCounter;
         }
     }
 
@@ -163,7 +176,12 @@ void Game::setupUi()
     loadingZone->setName("loadingZone");
     buildingView->addChild(loadingZone, 0);
 
-
+    auto doneButton = ui::Button::create("DoneButtonUnclicked.png", "DoneButtonclicked.png", "DoneButtonUnclicked.png");
+    doneButton->setPosition(Vec2(contextFrameWidth*9.4/12.0, bottomFrameHeight*(4.0/7.0)));
+    doneButton->setAnchorPoint(Vec2(0.0,0.0));
+    doneButton->setScale(.85, 1.0);
+    doneButton->addTouchEventListener(CC_CALLBACK_2(Game::onDone, this));
+    buildingView->addChild(doneButton);
 
     SpriteFrame* infoBottomFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
     infoView = Sprite::create();
@@ -268,15 +286,22 @@ void Game::wordPhaseDone()
     doCountdown = false;
     Tower* t = createTower(longestWord);
     Sprite* newTower = Sprite::create("BaseTower.png");
-    newTower->setPosition(loadingZone->getPosition());
+    newTower->setPosition(buildingView->convertToWorldSpace(loadingZone->getPosition()));
     newTower->setAnchorPoint(Vec2(0,0));
     newTower->setUserObject(t);
-    tileManager->addChild(newTower);
+    newTower->setName("New");
+    towerManager->addChild(newTower);
     buildingView->setLocalZOrder(1);
+    currentPhase = stBuild;
 
     longestWord = 0;
     sValidWord = "";
     bIsValidWord = false;
+}
+
+void Game::buildPhaseDone()
+{
+    currentPhase = stKill;
 }
 
 Tower* Game::createTower(unsigned int level)
@@ -381,7 +406,7 @@ void Game::setupEvents()
     touchListener->onTouchBegan = CC_CALLBACK_2(Game::onTouchStart, this);
     touchListener->onTouchMoved = CC_CALLBACK_2(Game::onTouchMove, this);
     touchListener->onTouchEnded = CC_CALLBACK_2(Game::onTouchEnd, this);
-    Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(touchListener,contextFrame);
+    Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(touchListener,globalFrame);
 }
 
 void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
@@ -421,6 +446,24 @@ void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
     }
 }
 
+void Game::onDone(Ref* sender, ui::Widget::TouchEventType type)
+{
+    switch (type)
+    {
+        case ui::Widget::TouchEventType::BEGAN:
+            break;
+        case ui::Widget::TouchEventType::ENDED:
+            if (bIsValidWord)
+            {
+                buildPhaseDone();
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+
 void Game::updateMoney()
 {
 
@@ -428,31 +471,50 @@ void Game::updateMoney()
 
 bool Game::onTouchStart(Touch* touch, Event* event)
 {
-    if (!bLetterPickedUp)
+
+    auto currentLocation = touch->getLocation();
+    if (currentPhase == stWord)
     {
-        auto currentLocation = touch->getLocation();
         int spriteTouched = touchedLetter(currentLocation);
         if (spriteTouched > -1)
         {
-            bLetterPickedUp = true;
-            int fieldTouched = touchedFieldHolder(currentLocation);
-            int handTouched = touchedHandHolder(currentLocation);
-            if (fieldTouched > -1)
+            if (!bLetterPickedUp)
             {
-                originalLocation = fieldManager->getChildByTag(fieldTouched)->getPosition();
-                currentHolder = fieldManager->getChildByTag(fieldTouched);
+                bLetterPickedUp = true;
+                int fieldTouched = touchedFieldHolder(currentLocation);
+                int handTouched = touchedHandHolder(currentLocation);
+                if (fieldTouched > -1)
+                {
+                    originalLocation = fieldManager->getChildByTag(fieldTouched)->getPosition();
+                    currentHolder = fieldManager->getChildByTag(fieldTouched);
+                }
+                else if (handTouched > -1)
+                {
+                    originalLocation = handManager->getChildByTag(handTouched)->getPosition();
+                    currentHolder = handManager->getChildByTag(handTouched);
+                }
+                else
+                {
+                    std::cout << "something went wrong\n";
+                }
+                lastTouchLocation = currentLocation;
+                currentLetter = letterManager->getChildByTag(spriteTouched);
             }
-            else if (handTouched > -1)
-            {
-                originalLocation = handManager->getChildByTag(handTouched)->getPosition();
-                currentHolder = handManager->getChildByTag(handTouched);
-            }
-            else
-            {
-                std::cout << "something went wrong\n";
-            }
+        }
+    }
+    else if (currentPhase == stBuild)
+    {
+        if (loadingZone->getBoundingBox().containsPoint(currentLocation))
+        {
+            bTowerPickedUp = true;
+            originalLocation = buildingView->convertToWorldSpace(loadingZone->getPosition());
+            currentTower = towerManager->getChildByName("New");
             lastTouchLocation = currentLocation;
-            currentLetter = letterManager->getChildByTag(spriteTouched);
+        }
+        int spriteTouched = touchedLetter(currentLocation);
+        if (spriteTouched > -1)
+        {
+            std::cout << "Tower Touched\n";
         }
     }
     return true;
@@ -460,68 +522,105 @@ bool Game::onTouchStart(Touch* touch, Event* event)
 
 bool Game::onTouchMove(Touch* touch, Event* event)
 {
-    if (bLetterPickedUp)
+    if (currentPhase == stWord)
     {
-        lastTouchLocation = touch->getLocation();
-        currentLetter->setPosition(currentLetter->getPosition() + touch->getDelta());
+        if (bLetterPickedUp)
+        {
+            lastTouchLocation = touch->getLocation();
+            currentLetter->setPosition(currentLetter->getPosition() + touch->getDelta());
+        }
+    }
+    else if (currentPhase == stBuild)
+    {
+        if (bTowerPickedUp)
+        {
+            lastTouchLocation = touch->getLocation();
+            currentTower->setPosition(currentTower->getPosition() + touch->getDelta());
+        }
+
     }
     return true;
 }
 bool Game::onTouchEnd(Touch* touch, Event* event)
 {
-    if (bLetterPickedUp)
+    if (currentPhase == stWord)
     {
-        int fieldTouched = touchedFieldHolder(lastTouchLocation);
-        int handTouched = touchedHandHolder(lastTouchLocation);
+        if (bLetterPickedUp)
+        {
+            int fieldTouched = touchedFieldHolder(lastTouchLocation);
+            int handTouched = touchedHandHolder(lastTouchLocation);
 
-        if (fieldTouched > -1)
-        {
-            auto holder = fieldManager->getChildByTag(fieldTouched);
-            if (!Holder::getValueFromNode(holder))
+            if (fieldTouched > -1)
             {
-                Holder::setValueFromNode(holder, true);
-                Holder::setValueFromNode(currentHolder, false);
-                std::cout << holder->getTag() << " has tile\n";
-                std::cout << currentHolder->getTag() << " has no tile\n";
-                if (currentHolder->getParent()->getName() == "FieldManager")
-                    updateCurrentWord('-', currentHolder->getTag());
-                currentHolder = holder;
-                auto action = MoveTo::create(0.2, holder->getPosition());
-                currentLetter->runAction(action);
-                updateCurrentWord(Letter::getLetterFromNode(currentLetter), fieldTouched);
+                auto holder = fieldManager->getChildByTag(fieldTouched);
+                if (!Holder::getValueFromNode(holder))
+                {
+                    Holder::setValueFromNode(holder, true);
+                    Holder::setValueFromNode(currentHolder, false);
+                    std::cout << holder->getTag() << " has tile\n";
+                    std::cout << currentHolder->getTag() << " has no tile\n";
+                    if (currentHolder->getParent()->getName() == "FieldManager")
+                        updateCurrentWord('-', currentHolder->getTag());
+                    currentHolder = holder;
+                    auto action = MoveTo::create(0.2, holder->getPosition());
+                    currentLetter->runAction(action);
+                    updateCurrentWord(Letter::getLetterFromNode(currentLetter), fieldTouched);
+                }
+                else
+                {
+                    auto action = MoveTo::create(0.2, originalLocation);
+                    currentLetter->runAction(action);
+                }
+            }
+            else if (handTouched > -1)
+            {
+                auto holder = handManager->getChildByTag(handTouched);
+                if (!Holder::getValueFromNode(holder))
+                {
+                    Holder::setValueFromNode(holder, true);
+                    Holder::setValueFromNode(currentHolder, false);
+                    if (currentHolder->getParent()->getName() == "FieldManager")
+                        updateCurrentWord('-', currentHolder->getTag());
+                    currentHolder = holder;
+                    auto action = MoveTo::create(0.2, holder->getPosition());
+                    currentLetter->runAction(action);
+                }
+                else
+                {
+                    auto action = MoveTo::create(0.2, originalLocation);
+                    currentLetter->runAction(action);
+                }
             }
             else
             {
                 auto action = MoveTo::create(0.2, originalLocation);
                 currentLetter->runAction(action);
             }
+            bLetterPickedUp = false;
+            updateValidWord();
         }
-        else if (handTouched > -1)
+    }
+    else if (currentPhase == stBuild)
+    {
+        if (bTowerPickedUp)
         {
-            auto holder = handManager->getChildByTag(handTouched);
-            if (!Holder::getValueFromNode(holder))
+            int tileTouched = touchedTile(lastTouchLocation);
+            if (tileTouched > -1)
             {
-                Holder::setValueFromNode(holder, true);
-                Holder::setValueFromNode(currentHolder, false);
-                if (currentHolder->getParent()->getName() == "FieldManager")
-                    updateCurrentWord('-', currentHolder->getTag());
-                currentHolder = holder;
-                auto action = MoveTo::create(0.2, holder->getPosition());
-                currentLetter->runAction(action);
+                auto tile = tileManager->getChildByTag(tileTouched);
+                Vec2 newLocation = tileManager->convertToWorldSpace(tile->getPosition());
+                auto action = MoveTo::create(0.2, newLocation);
+                currentTower->runAction(action);
             }
             else
             {
                 auto action = MoveTo::create(0.2, originalLocation);
-                currentLetter->runAction(action);
+                currentTower->runAction(action);
+
             }
+            bTowerPickedUp = false;
+
         }
-        else
-        {
-            auto action = MoveTo::create(0.2, originalLocation);
-            currentLetter->runAction(action);
-        }
-        bLetterPickedUp = false;
-        updateValidWord();
     }
     return true;
 }
@@ -553,6 +652,26 @@ int Game::touchedHandHolder(Vec2 location)
 int Game::touchedLetter(Vec2 location)
 {
     for (auto node : letterManager->getChildren())
+    {
+        if (node->getBoundingBox().containsPoint(location))
+            return node->getTag();
+    }
+    return -1;
+}
+
+int Game::touchedTower(Vec2 location)
+{
+    for (auto node : towerManager->getChildren())
+    {
+        if (node->getBoundingBox().containsPoint(location))
+            return node->getTag();
+    }
+    return -1;
+}
+
+int Game::touchedTile(Vec2 location)
+{
+    for (auto node : tileManager->getChildren())
     {
         if (node->getBoundingBox().containsPoint(location))
             return node->getTag();
