@@ -31,26 +31,26 @@ private:
 	// globalFrame
 	Sprite* globalFrame;
 	Sprite* towerManager;
-	// topFrame
-	Sprite* topFrame;
-	Sprite* gameView;
+
+	// gameFrame
+	Sprite* gameFrame;
 	Sprite* tileManager;
 
-	// contextFrame
-	Sprite* contextFrame;
-	Sprite* lettersView;
+	// lettersFrame
+	Sprite* lettersFrame;
 	Sprite* letterManager;
 	Sprite* fieldManager;
 	Sprite* handManager;
-	Sprite* buildingView;
-	Sprite* loadingZone;
+
 
 	// infoFrame
 	Sprite* infoFrame;
 	Sprite* infoView;
 	Label* moneyLabel;
 	Label* timeLabel;
+	Sprite* loadingZone;
 
+	// helpers
 	Node* currentLetter;
 	Node* currentHolder;
 	Node* currentTower;
@@ -68,7 +68,7 @@ private:
 	unsigned int longestWord;
 	int money;
 	bool doCountdown = true;
-	float levelTimer = 3.0;
+	float levelTimer = 5.0;
 
 
 
@@ -103,7 +103,14 @@ private:
 	// Resources
 	std::string letterImage = "EmptyLetter.png";
 	std::string letterHolderImage = "LetterHolder.png";
+
+	// Parameters
 	int numLetters = 9;
+	float scale = 1.0;
+	float numRows = 7.0;
+	float numColumns = 14.0;
+	float gameRows = 7.0;
+	float gameColumns = 9.0;
 };
 
 #endif // __GAME_SCENE_H__

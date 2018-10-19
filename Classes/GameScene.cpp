@@ -25,8 +25,6 @@ bool Game::init()
     {
         return false;
     }
-    fWindowHeight = Director::getInstance()->getVisibleSize().height;
-    fWindowWidth = Director::getInstance()->getVisibleSize().width;
     loadAllWords();
     setupUi();
     setupEvents();
@@ -55,192 +53,175 @@ void Game::cleanup()
 void Game::setupUi()
 {
     // Main frames
-    float bottomFrameHeight = fWindowHeight*(1.0/3.0);
-    float topFrameHeight = fWindowHeight/(2.0/3.0); // 1400 width, 500 height
-    float contextFrameHeight = bottomFrameHeight;
-    float contextFrameWidth = fWindowWidth * (12.0/15.0);
-    float infoFrameHeight = bottomFrameHeight;
-    float infoFrameWidth = fWindowWidth - contextFrameWidth;
-    SpriteFrame* contextSpriteFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, contextFrameWidth, bottomFrameHeight));
-	contextFrame = Sprite::create();
-    contextFrame->setSpriteFrame(contextSpriteFrame);
-    contextFrame->setPosition(0, 0);
-    contextFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(contextFrame, 0);
+    fWindowHeight = Director::getInstance()->getVisibleSize().height;
+    fWindowWidth = Director::getInstance()->getVisibleSize().width;
+    // Create a 14 by 7 tile
 
-    SpriteFrame* infoSpriteFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
+    float tileSize;
+    if (fWindowHeight*2.0 > fWindowWidth)
+    {
+        tileSize = fWindowWidth / numColumns;
+    }
+    else
+    {
+        tileSize = fWindowHeight / numRows;
+    }
+
+    Sprite* baseTile = Sprite::create("Grass.png");
+    float originalSize = baseTile->getContentSize().width;
+    scale = tileSize/originalSize;
+    std::cout << "tileSize " << tileSize << ", originalSize " << originalSize << "\n";
+
+    float gameFrameHeight = gameRows * tileSize; 
+    float gameFrameWidth = gameColumns * tileSize;
+    float infoFrameHeight = gameRows * tileSize;
+    float infoFrameWidth = (numColumns - gameColumns) * tileSize;
+    std::cout << "windowFrame = " << fWindowWidth << " " << fWindowHeight << "\n";
+    std::cout << "gameFrame = " << gameFrameWidth << " " << gameFrameHeight << "\n";
+    std::cout << "infoFrame = " << infoFrameWidth << " " << infoFrameHeight << "\n";
+
+    SpriteFrame* gameSpriteFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, gameFrameWidth, gameFrameHeight));
+	gameFrame = Sprite::create();
+    gameFrame->setSpriteFrame(gameSpriteFrame);
+    gameFrame->setPosition(0, 0);
+    gameFrame->setAnchorPoint(Vec2(0.0, 0.0));
+    this->addChild(gameFrame, 0);
+
+    SpriteFrame* lettersSpriteFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, gameFrameWidth, gameFrameHeight));
+    lettersFrame = Sprite::create();
+    lettersFrame->setSpriteFrame(lettersSpriteFrame);
+    lettersFrame->setPosition(0, 0);
+    lettersFrame->setAnchorPoint(Vec2(0,0));
+    lettersFrame->setName("LettersFrame");
+    this->addChild(lettersFrame, 1);
+
+    SpriteFrame* infoSpriteFrame = SpriteFrame::create("Beige.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
     infoFrame = Sprite::create();
     infoFrame->setSpriteFrame(infoSpriteFrame);
-    infoFrame->setPosition(contextFrameWidth, 0);
+    infoFrame->setPosition(gameFrameWidth, 0.0);
     infoFrame->setAnchorPoint(Vec2(0.0, 0.0));
+    infoFrame->setName("InfoFrame");
     this->addChild(infoFrame, 0);
-
-    SpriteFrame* topSpriteFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, topFrameHeight));
-    topFrame = Sprite::create();
-    topFrame->setSpriteFrame(topSpriteFrame);
-    topFrame->setPosition(0, bottomFrameHeight);
-    topFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(topFrame, 0);
 
     SpriteFrame* emptyWindowFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
     globalFrame = Sprite::create();
     globalFrame->setSpriteFrame(emptyWindowFrame);
     globalFrame->setPosition(0, 0);
     globalFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(globalFrame, 0);
+    this->addChild(globalFrame, 2);
 
     towerManager = Sprite::create();
     towerManager->setSpriteFrame(emptyWindowFrame);
     towerManager->setPosition(0, 0);
     towerManager->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(towerManager, 0);
+    globalFrame->addChild(towerManager, 0);
 
-    SpriteFrame* gameFrame = SpriteFrame::create("Blue.png", Rect(0.0, 0.0, fWindowWidth, topFrameHeight));
-    gameView = Sprite::create();
-    gameView->setSpriteFrame(gameFrame);
-    gameView->setPosition(0, 0);
-    gameView->setAnchorPoint(Vec2(0,0));
-    gameView->setName("GameView");
-    topFrame->addChild(gameView);
-
-    SpriteFrame* tileFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, topFrameHeight));
     tileManager = Sprite::create();
-    tileManager->setSpriteFrame(tileFrame);
+    tileManager->setSpriteFrame(lettersSpriteFrame);
     tileManager->setPosition(0, 0);
     tileManager->setAnchorPoint(Vec2(0,0));
     tileManager->setName("TileManager");
-    gameView->addChild(tileManager);
+    gameFrame->addChild(tileManager);
 
-    float rows = 5.0;
-    float columns =  10.0;
-    float tileWidth = fWindowWidth/columns;
-    std::cout << tileWidth << " = tilesize\n";
-    float scale = tileWidth/100.0;
-    int midPoint = 5;
     int tileCounter = 0;
+    bool map[(int)gameRows][(int)gameColumns] =
+    {{false, false, false, false, false, false, false, false, false},
+     {false, true,  true,  false, true,  true,  true,  true,  false},
+     {false, true,  true,  false, true,  true,  true,  true,  false},
+     {false, true,  true,  false, false, false, true,  true,  false},
+     {false, true,  true,  true,  true,  false, true,  true,  false},
+     {false, true,  true,  true,  true,  false, true,  true,  false},
+     {false, false, false, false, false, false, false, false, false}};
 
-    for (int i = 0; i < columns; ++i)
+    int currentRow, currentColumn;
+    for (float i = 0; i < gameColumns; ++i)
     {
-        for (int j = 0; j < rows; ++j)
+        for (float j = 0; j < gameRows; ++j)
         {
-            if ((i == columns-1))
-                continue;
-
             Sprite* tile;
-            if (((j == 0 or j == rows-1.0) and i < midPoint) or (i == midPoint) or ((j == 1 or j == 3) and i > midPoint))
-            {
-                tile = Sprite::create("Path.png");
-                tile->setName("Path");
-            }
-            else
+            currentRow = 6 - (int)j;
+            currentColumn = (int)i;
+            if (map[currentRow][currentColumn])
             {
                 tile = Sprite::create("Grass.png");
                 tile->setName("Grass");
             }
+            else
+            {
+                tile = Sprite::create("Path.png");
+                tile->setName("Path");
+            }
 
-            tile->setPosition(i*tileWidth, j*tileWidth);
+            tile->setPosition(i*tileSize, j*tileSize);
             tile->setAnchorPoint(Vec2(0,0));
-            tile->setScale(scale, scale);
+            tile->setScale(scale, scale); // somethines wrong with scaling...
             tileManager->addChild(tile, 0, tileCounter);
             ++tileCounter;
         }
     }
 
-    // Enemy Building
-    Sprite* homeBase = Sprite::create("Building.png");
-    homeBase->setPosition((columns-1)*tileWidth, 0);
-    homeBase->setAnchorPoint(Vec2(0,0));
-    homeBase->setScale(scale, scale);
-    tileManager->addChild(homeBase);
-
-    SpriteFrame* lettersFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, contextFrameWidth, contextFrameHeight));
-    lettersView = Sprite::create();
-    lettersView->setSpriteFrame(lettersFrame);
-    lettersView->setPosition(0,0);
-    lettersView->setAnchorPoint(Vec2(0.0,0.0));
-    lettersView->setName("LettersView");
-    contextFrame->addChild(lettersView, 1);
-
-    SpriteFrame* buildingFrame = SpriteFrame::create("White.png", Rect(0.0, 0.0, contextFrameWidth, contextFrameHeight));
-    buildingView = Sprite::create();
-    buildingView->setSpriteFrame(buildingFrame);
-    buildingView->setPosition(0,0);
-    buildingView->setAnchorPoint(Vec2(0.0,0.0));
-    buildingView->setName("BuildingView");
-    contextFrame->addChild(buildingView, 0);
-
-    SpriteFrame* loadingZoneFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, 100.0, 100.0));
+    SpriteFrame* loadingZoneFrame = SpriteFrame::create("White.png", Rect(0.0, 0.0, 100.0, 100.0));
     loadingZone = Sprite::create();
     loadingZone->setSpriteFrame(loadingZoneFrame);
-    loadingZone->setPosition(contextFrameWidth/2.0, contextFrameHeight/2.0);
-    loadingZone->setAnchorPoint(Vec2(0.0,0.0));
+    loadingZone->setPosition(infoFrameWidth*2.0/4.0, infoFrameHeight*(3.0/7.0));
+    loadingZone->setAnchorPoint(Vec2(0.5,0.5));
     loadingZone->setName("loadingZone");
-    buildingView->addChild(loadingZone, 0);
+    loadingZone->setScale(scale);
+    infoFrame->addChild(loadingZone, 0);
 
-    auto doneButton = ui::Button::create("DoneButtonUnclicked.png", "DoneButtonclicked.png", "DoneButtonUnclicked.png");
-    doneButton->setPosition(Vec2(contextFrameWidth*9.4/12.0, bottomFrameHeight*(4.0/7.0)));
-    doneButton->setAnchorPoint(Vec2(0.0,0.0));
-    doneButton->setScale(.85, 1.0);
+    auto doneButton = ui::Button::create("DoneButtonUnclicked.png", "DoneButtonClicked.png", "DoneButtonUnclicked.png");
+    doneButton->setPosition(Vec2(infoFrameWidth*2.0/4.0, infoFrameHeight*(1.0/7.0)));
+    doneButton->setAnchorPoint(Vec2(0.5,0.5));
     doneButton->addTouchEventListener(CC_CALLBACK_2(Game::onDone, this));
-    buildingView->addChild(doneButton);
-
-    SpriteFrame* infoBottomFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
-    infoView = Sprite::create();
-    infoView->setSpriteFrame(infoBottomFrame);
-    infoView->setPosition(0,0);
-    infoView->setAnchorPoint(Vec2(0.0,0.0));
-    infoView->setName("InfoView");
-    infoFrame->addChild(infoView);
+    infoFrame->addChild(doneButton);
 
     auto moneyPrefix = Label::createWithSystemFont("$", "Arial", 16);
-    moneyPrefix->setPosition(Vec2(infoFrameWidth/5, infoFrameHeight*4.0/5.0));
-    moneyPrefix->setAnchorPoint(Vec2(0, 0));
-    infoView->addChild(moneyPrefix);
+    moneyPrefix->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*(5.0/7.0)));
+    moneyPrefix->setAnchorPoint(Vec2(0.5, 0.5));
+    infoFrame->addChild(moneyPrefix);
     moneyLabel = Label::createWithSystemFont("0", "Arial", 16);
-    moneyLabel->setPosition(Vec2(infoFrameWidth*2.0/5.0, infoFrameHeight*4.0/5.0));
-    moneyLabel->setAnchorPoint(Vec2(0, 0));
-    infoView->addChild(moneyLabel);
+    moneyLabel->setPosition(Vec2(infoFrameWidth*4.0/6.0, infoFrameHeight*(5.0/7.0)));
+    moneyLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    infoFrame->addChild(moneyLabel);
 
     auto timePrefix = Label::createWithSystemFont("0:", "Arial", 16);
-    timePrefix->setPosition(Vec2(infoFrameWidth/5, infoFrameHeight*3.0/5.0));
-    timePrefix->setAnchorPoint(Vec2(0, 0));
-    infoView->addChild(timePrefix);
+    timePrefix->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*6.0/7.0));
+    timePrefix->setAnchorPoint(Vec2(0.5, 0.5));
+    infoFrame->addChild(timePrefix);
     timeLabel = Label::createWithSystemFont("", "Arial", 16);
     std::stringstream ss;
     ss << std::fixed << std::setprecision(0) << levelTimer;
     timeLabel->setString(ss.str());
-    timeLabel->setPosition(Vec2(infoFrameWidth*2.0/5.0, infoFrameHeight*3.0/5.0));
-    timeLabel->setAnchorPoint(Vec2(0, 0));
-    infoView->addChild(timeLabel);
+    timeLabel->setPosition(Vec2(infoFrameWidth*4.0/6.0, infoFrameHeight*6.0/7.0));
+    timeLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    infoFrame->addChild(timeLabel);
 
-    SpriteFrame* emptyContextFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, contextFrameWidth, contextFrameHeight));
     fieldManager = Sprite::create();
-    fieldManager->setSpriteFrame(emptyContextFrame);
+    fieldManager->setSpriteFrame(gameSpriteFrame);
     fieldManager->setPosition(0,0);
     fieldManager->setAnchorPoint(Vec2(0.0,0.0));
     fieldManager->setName("FieldManager");
-    lettersView->addChild(fieldManager, 0, eFieldManager);
+    lettersFrame->addChild(fieldManager, 0, eFieldManager);
 
     handManager = Sprite::create();
-    handManager->setSpriteFrame(emptyContextFrame);
+    handManager->setSpriteFrame(gameSpriteFrame);
     handManager->setPosition(0,0);
     handManager->setAnchorPoint(Vec2(0.0,0.0));
     handManager->setName("HandManager");
-    lettersView->addChild(handManager, 0, eHandManager);
+    lettersFrame->addChild(handManager, 0, eHandManager);
 
     letterManager = Sprite::create();
-    letterManager->setSpriteFrame(emptyContextFrame);
+    letterManager->setSpriteFrame(gameSpriteFrame);
     letterManager->setPosition(0,0);
     letterManager->setAnchorPoint(Vec2(0.0,0.0));
     letterManager->setName("LetterManager");
-    lettersView->addChild(letterManager, 0, eLetterManager);
+    lettersFrame->addChild(letterManager, 0, eLetterManager);
 
     auto submitButton = ui::Button::create("SubmitButtonUnclicked.png", "SubmitButtonClicked.png", "SubmitButtonUnclicked.png");
-    submitButton->setPosition(Vec2(contextFrameWidth*9.4/12.0, bottomFrameHeight*(4.0/7.0)));
+    submitButton->setPosition(Vec2(gameFrameWidth*4.0/9.0, gameFrameHeight*(1.0/7.0)));
     submitButton->setAnchorPoint(Vec2(0.0,0.0));
-    submitButton->setScale(.85, 1.0);
     submitButton->addTouchEventListener(CC_CALLBACK_2(Game::onSubmit, this));
-    lettersView->addChild(submitButton, 0, eSubmitButton);
+    lettersFrame->addChild(submitButton, 0, eSubmitButton);
 
     for (int i = 0; i<numLetters; ++i)
     {
@@ -248,7 +229,7 @@ void Game::setupUi()
         auto letterHolder = Sprite::create(letterHolderImage);
         auto holder = new Holder(false);
         letterHolder->setUserObject(holder);
-        letterHolder->setPosition(contextFrameWidth*count/12.0, bottomFrameHeight*(2.0/7.0));
+        letterHolder->setPosition(gameFrameWidth*count/12.0, gameFrameHeight*(3.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         letterHolder->setScale(1.3, 1.3);
         handManager->addChild(letterHolder, 0, i);
@@ -260,7 +241,7 @@ void Game::setupUi()
         auto letterHolder = Sprite::create(letterHolderImage);
         auto holder = new Holder(false);
         letterHolder->setUserObject(holder);
-        letterHolder->setPosition(contextFrameWidth*count/12.0, bottomFrameHeight*(5.0/7.0));
+        letterHolder->setPosition(gameFrameWidth*count/12.0, gameFrameHeight*(5.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         letterHolder->setScale(1.3, 1.3);
         fieldManager->addChild(letterHolder, 0, i);
@@ -287,12 +268,13 @@ void Game::wordPhaseDone()
     doCountdown = false;
     Tower* t = createTower(longestWord);
     Sprite* newTower = Sprite::create("BaseTower.png");
-    newTower->setPosition(buildingView->convertToWorldSpace(loadingZone->getPosition()));
+    newTower->setPosition(infoFrame->convertToWorldSpace(loadingZone->getPosition()));
     newTower->setAnchorPoint(Vec2(0,0));
     newTower->setUserObject(t);
     newTower->setName("New");
+    newTower->setScale(scale);
     towerManager->addChild(newTower);
-    buildingView->setLocalZOrder(1);
+    gameFrame->setLocalZOrder(1);
     currentPhase = stBuild;
 
     longestWord = 0;
@@ -505,14 +487,14 @@ bool Game::onTouchStart(Touch* touch, Event* event)
     }
     else if (currentPhase == stBuild)
     {
-        if (loadingZone->getBoundingBox().containsPoint(currentLocation))
+        if (loadingZone->getBoundingBox().containsPoint(infoFrame->convertToNodeSpace(currentLocation)))
         {
             bTowerPickedUp = true;
-            originalLocation = buildingView->convertToWorldSpace(loadingZone->getPosition());
+            originalLocation = infoFrame->convertToWorldSpace(loadingZone->getPosition());
             currentTower = towerManager->getChildByName("New");
             lastTouchLocation = currentLocation;
         }
-        int spriteTouched = touchedLetter(currentLocation);
+        int spriteTouched = touchedTower(currentLocation);
         if (spriteTouched > -1)
         {
             std::cout << "Tower Touched\n";
