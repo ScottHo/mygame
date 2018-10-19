@@ -107,10 +107,10 @@ private:
 	// Parameters
 	int numLetters = 9;
 	float scale = 1.0;
-	float numRows = 7.0;
-	float numColumns = 14.0;
-	float gameRows = 7.0;
-	float gameColumns = 9.0;
+	float numRows = 6.0;
+	float numColumns = 12.0;
+	float gameRows = 6.0;
+	float gameColumns = 10.0;
 };
 
 #endif // __GAME_SCENE_H__

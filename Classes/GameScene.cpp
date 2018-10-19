@@ -87,7 +87,7 @@ void Game::setupUi()
     gameFrame->setAnchorPoint(Vec2(0.0, 0.0));
     this->addChild(gameFrame, 0);
 
-    SpriteFrame* lettersSpriteFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, gameFrameWidth, gameFrameHeight));
+    SpriteFrame* lettersSpriteFrame = SpriteFrame::create("Beige.png", Rect(0.0, 0.0, gameFrameWidth, gameFrameHeight));
     lettersFrame = Sprite::create();
     lettersFrame->setSpriteFrame(lettersSpriteFrame);
     lettersFrame->setPosition(0, 0);
@@ -95,7 +95,7 @@ void Game::setupUi()
     lettersFrame->setName("LettersFrame");
     this->addChild(lettersFrame, 1);
 
-    SpriteFrame* infoSpriteFrame = SpriteFrame::create("Beige.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
+    SpriteFrame* infoSpriteFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
     infoFrame = Sprite::create();
     infoFrame->setSpriteFrame(infoSpriteFrame);
     infoFrame->setPosition(gameFrameWidth, 0.0);
@@ -125,13 +125,12 @@ void Game::setupUi()
 
     int tileCounter = 0;
     bool map[(int)gameRows][(int)gameColumns] =
-    {{false, false, false, false, false, false, false, false, false},
-     {false, true,  true,  false, true,  true,  true,  true,  false},
-     {false, true,  true,  false, true,  true,  true,  true,  false},
-     {false, true,  true,  false, false, false, true,  true,  false},
-     {false, true,  true,  true,  true,  false, true,  true,  false},
-     {false, true,  true,  true,  true,  false, true,  true,  false},
-     {false, false, false, false, false, false, false, false, false}};
+    {{false, false, false, false, true,  true,  false, false, false, false},
+     {false, true,  true,  true,  true,  true,  true,  true,  true,  false},
+     {false, true,  true,  false, false, false, false, true,  true,  false},
+     {false, true,  true,  false, true,  true,  false, true,  true,  false},
+     {false, true,  true,  false, true,  true,  false, true,  true,  false},
+     {false, false, false, false, true,  true,  false, false, false, false}};
 
     int currentRow, currentColumn;
     for (float i = 0; i < gameColumns; ++i)
@@ -139,7 +138,7 @@ void Game::setupUi()
         for (float j = 0; j < gameRows; ++j)
         {
             Sprite* tile;
-            currentRow = 6 - (int)j;
+            currentRow = gameRows - 1 - (int)j;
             currentColumn = (int)i;
             if (map[currentRow][currentColumn])
             {
@@ -160,7 +159,7 @@ void Game::setupUi()
         }
     }
 
-    SpriteFrame* loadingZoneFrame = SpriteFrame::create("White.png", Rect(0.0, 0.0, 100.0, 100.0));
+    SpriteFrame* loadingZoneFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, 100.0, 100.0));
     loadingZone = Sprite::create();
     loadingZone->setSpriteFrame(loadingZoneFrame);
     loadingZone->setPosition(infoFrameWidth*2.0/4.0, infoFrameHeight*(3.0/7.0));
@@ -225,11 +224,11 @@ void Game::setupUi()
 
     for (int i = 0; i<numLetters; ++i)
     {
-        double count = i + .70;
+        double count = i + 1.0;
         auto letterHolder = Sprite::create(letterHolderImage);
         auto holder = new Holder(false);
         letterHolder->setUserObject(holder);
-        letterHolder->setPosition(gameFrameWidth*count/12.0, gameFrameHeight*(3.0/7.0));
+        letterHolder->setPosition(gameFrameWidth*count/11.0, gameFrameHeight*(3.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         letterHolder->setScale(1.3, 1.3);
         handManager->addChild(letterHolder, 0, i);
@@ -237,11 +236,11 @@ void Game::setupUi()
 
     for (int i = 0; i<numLetters; ++i)
     {
-        double count = i + .70;
+        double count = i + 1.0;
         auto letterHolder = Sprite::create(letterHolderImage);
         auto holder = new Holder(false);
         letterHolder->setUserObject(holder);
-        letterHolder->setPosition(gameFrameWidth*count/12.0, gameFrameHeight*(5.0/7.0));
+        letterHolder->setPosition(gameFrameWidth*count/11.0, gameFrameHeight*(5.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         letterHolder->setScale(1.3, 1.3);
         fieldManager->addChild(letterHolder, 0, i);
