@@ -71,17 +71,15 @@ private:
 	std::string sValidWord;
 	bool bIsValidWord;
 	std::vector<std::string> vWordsUsed;
-	unsigned int longestWord;
+	int longestWord;
 	int money;
 	bool doCountdown = false;
 	float levelTimer = 1.0;
 	int towerCount = 0;
 	int unitTagCounter = 0;
-	unsigned int unitsUnspawned;
-	unsigned int unitsLeft;
+	int unitsUnspawned;
+	int unitsLeft;
 	int currentLevel = 0;
-
-
 
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);
@@ -100,7 +98,6 @@ private:
 	int touchedFieldHolder(Vec2 location);
 	std::string generateRandomLetters();
 	void loadAllWords();
-	void updateMoney();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
 	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
@@ -112,8 +109,6 @@ private:
 	void buildPhaseDone();
 	void killPhaseDone();
 	void waitPhaseDone();
-
-
 
 	std::vector<std::string> vWords;
 
@@ -129,9 +124,9 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
-	float levelTime = 10.0;
+	float levelTime = 30.0;
 	int numCorners = 10;
-	unsigned int enemiesPerLevel = 8;
+	int enemiesPerLevel = 8;
 };
 
 #endif // __GAME_SCENE_H__

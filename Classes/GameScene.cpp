@@ -287,42 +287,48 @@ void Game::setupUi()
 
 void Game::update(float delta)
 {
-    if (doCountdown)
+    switch (currentPhase)
     {
-        levelTimer -= delta;
-        std::stringstream ss;
-        ss << std::fixed << std::setprecision(0) << levelTimer;
-        timeLabel->setString(ss.str());
-        if (levelTimer <= 0.05)
-        {
-            wordPhaseDone();
-        }
-    }
-    if (currentPhase == stKill)
-    {
-        spawnFrequencyTimer -= delta;
-        if (spawnFrequencyTimer <= 0.0 and unitsUnspawned > 0)
-        {
-            spawnEnemy();
-            spawnFrequencyTimer = 1.0;
-        }
-        else if (unitsUnspawned == 0)
-        {
-            if (unitsLeft == 0)
+        case stWord:
+            if (doCountdown)
             {
-                killPhaseDone();
+                levelTimer -= delta;
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(0) << levelTimer;
+                timeLabel->setString(ss.str());
+                if (levelTimer <= 0.05)
+                {
+                    wordPhaseDone();
+                }
             }
-        }
-        for (auto node : unitManager->getChildren())
-        {
-            UnitNode* tmp = dynamic_cast<UnitNode*>(node);
-            if (tmp->justDied())
+        break;
+        case stKill:        
+            spawnFrequencyTimer -= delta;
+            if (spawnFrequencyTimer <= 0.0 and unitsUnspawned > 0)
             {
-                tmp->setJustDied(false);
-                unitsLeft--;
-                std::cout << unitsLeft << " units left\n";
+                spawnEnemy();
+                spawnFrequencyTimer = 1.0;
             }
-        }
+            else if (unitsUnspawned == 0)
+            {
+                if (unitsLeft == 0)
+                {
+                    killPhaseDone();
+                }
+            }
+            for (auto node : unitManager->getChildren())
+            {
+                UnitNode* tmp = dynamic_cast<UnitNode*>(node);
+                if (tmp->justDied())
+                {
+                    tmp->setJustDied(false);
+                    unitsLeft--;
+                    std::cout << unitsLeft << " units left\n";
+                }
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -342,7 +348,7 @@ void Game::wordPhaseDone()
 {
     doCountdown = false;
     towerCount++;
-    TowerNode* newTower = createTower(towerCount, currentLevel);
+    TowerNode* newTower = createTower(towerCount, longestWord);
     towerManager->addChild(newTower);
     lettersFrame->setLocalZOrder(0);
     gameFrame->setLocalZOrder(1);
@@ -364,6 +370,7 @@ void Game::buildPhaseDone()
     bTowerPickedUp = false;
     doneButton->setEnabled(false);
     unitsUnspawned = enemiesPerLevel;
+    unitsLeft = enemiesPerLevel;
     currentPhase = stKill;
     std::cout << "Build Phase Done\n";
 }
@@ -401,7 +408,6 @@ void Game::spawnEnemy()
         action7, action8, action9, nullptr);
     newUnit->runAction(sequence);
     unitsUnspawned--;
-    unitsLeft++;
 }
 
 TowerNode* Game::createTower(int tag, int level)
@@ -454,6 +460,7 @@ void Game::dealTiles()
         std::cout << filename << "\n";
         auto sprite = LetterNode::createLetter(filename);
         auto holder = handManager->getChildByTag(i);
+        sprite->setValue(randomLetters.at(i));
         sprite->setPosition(holder->getPosition());
         sprite->setAnchorPoint(Vec2(0.5, 0.5));
         sprite->setScale(1.2, 1.2);
@@ -491,6 +498,7 @@ std::string Game::generateRandomLetters()
 void Game::updateCurrentWord(char letter, int index)
 {
     currentWord[index] = letter;
+    std::cout << currentWord << "\n";
 }
 
 void Game::updateValidWord()
@@ -548,71 +556,77 @@ void Game::setupEvents()
 
 bool Game::onContactBegin(PhysicsContact& contact)
 {
-    auto nodeA = contact.getShapeA()->getBody()->getNode();
-    auto nodeB = contact.getShapeB()->getBody()->getNode();
-    if (nodeA && nodeB)
+    if (currentPhase == stKill)
     {
-        if (nodeA->getName() == "Tower")
+        auto nodeA = contact.getShapeA()->getBody()->getNode();
+        auto nodeB = contact.getShapeB()->getBody()->getNode();
+        if (nodeA && nodeB)
         {
-            if (nodeB->getName() == "Unit")
+            if (nodeA->getName() == "Tower")
             {
-                TowerNode* tmpA = dynamic_cast<TowerNode*>(nodeA);
-                UnitNode* tmpB = dynamic_cast<UnitNode*>(nodeB);
-
-                if (tmpB->health() > 0)
+                if (nodeB->getName() == "Unit")
                 {
-                    tmpA->addTarget(tmpB);
-                    std::cout << "Tower " << tmpA->getTag() << " targetting Unit" << tmpB->getTag() << "\n";
+                    TowerNode* tmpA = dynamic_cast<TowerNode*>(nodeA);
+                    UnitNode* tmpB = dynamic_cast<UnitNode*>(nodeB);
+
+                    if (tmpB->health() > 0)
+                    {
+                        tmpA->addTarget(tmpB);
+                        std::cout << "Tower " << tmpA->getTag() << " targetting Unit" << tmpB->getTag() << "\n";
+                    }
+
                 }
-
             }
-        }
-        else if (nodeB->getName() == "Tower")
-        {
-            if (nodeA->getName() == "Unit")
+            else if (nodeB->getName() == "Tower")
             {
-                UnitNode* tmpA = dynamic_cast<UnitNode*>(nodeA);
-                TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
-                if (tmpA->health() > 0)
+                if (nodeA->getName() == "Unit")
                 {
-                    tmpB->addTarget(tmpA);
-                    std::cout << "Tower " << tmpB->getTag() << " targetting Unit" << tmpA->getTag() << "\n";
+                    UnitNode* tmpA = dynamic_cast<UnitNode*>(nodeA);
+                    TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
+                    if (tmpA->health() > 0)
+                    {
+                        tmpB->addTarget(tmpA);
+                        std::cout << "Tower " << tmpB->getTag() << " targetting Unit" << tmpA->getTag() << "\n";
+                    }
                 }
             }
         }
     }
-
+    
     //bodies can collide
     return true;
 }
 
 bool Game::onContactSeparate(PhysicsContact& contact)
 {
-    auto nodeA = contact.getShapeA()->getBody()->getNode();
-    auto nodeB = contact.getShapeB()->getBody()->getNode();
-
-    if (nodeA && nodeB)
+    if (currentPhase == stKill)
     {
-        if (nodeA->getName() == "Tower")
-        {
-            if (nodeB->getName() == "Unit")
-            {
-                TowerNode* tmpA = dynamic_cast<TowerNode*>(nodeA);
-                UnitNode* tmpB = dynamic_cast<UnitNode*>(nodeB);
-                tmpA->removeTarget(tmpB);
-                std::cout << "Tower " << nodeA->getTag() << " out of range for Unit " << nodeB->getTag() << "\n";
+        auto nodeA = contact.getShapeA()->getBody()->getNode();
+        auto nodeB = contact.getShapeB()->getBody()->getNode();
 
+        if (nodeA && nodeB)
+        {
+            if (nodeA->getName() == "Tower")
+            {
+                if (nodeB->getName() == "Unit")
+                {
+                    TowerNode* tmpA = dynamic_cast<TowerNode*>(nodeA);
+                    UnitNode* tmpB = dynamic_cast<UnitNode*>(nodeB);
+                    tmpA->removeTarget(tmpB);
+                    std::cout << "Tower " << nodeA->getTag() << " out of range for Unit " << nodeB->getTag() << "\n";
+
+                }
             }
-        }
-        else if (nodeB->getName() == "Tower")
-        {
-            if (nodeA->getName() == "Unit")
+            else if (nodeB->getName() == "Tower")
             {
-                TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
-                UnitNode* tmpA = dynamic_cast<UnitNode*>(nodeB);
-                tmpB->removeTarget(tmpA);
-                std::cout << "Tower " << nodeB->getTag() << " out of range for Unit " << nodeA->getTag() << "\n";
+                if (nodeA->getName() == "Unit")
+                {
+                    TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
+                    UnitNode* tmpA = dynamic_cast<UnitNode*>(nodeB);
+                    tmpB->removeTarget(tmpA);
+                    std::cout << "Tower " << nodeB->getTag() << " out of range for Unit " << nodeA->getTag() << "\n";
 
+                }
             }
         }
     }
@@ -650,8 +664,8 @@ void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
                         else 
                             money += 20;
                         moneyLabel->setString(std::to_string(money));
-                        if (sValidWord.length() > longestWord)
-                            longestWord = sValidWord.length();
+                        if ((int)sValidWord.length() > longestWord)
+                            longestWord = (int)sValidWord.length();
                     }
                 }
             }
@@ -693,12 +707,6 @@ void Game::onDone(Ref* sender, ui::Widget::TouchEventType type)
         default:
             break;
     }
-}
-
-
-void Game::updateMoney()
-{
-
 }
 
 bool Game::onTouchStart(Touch* touch, Event* event)
@@ -785,8 +793,8 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
 
                 if (!holder->value())
                 {
-                    holder->setValue(true);
                     currentHolder->setValue(false);
+                    holder->setValue(true);
                     std::cout << holder->getTag() << " has tile\n";
                     std::cout << currentHolder->getTag() << " has no tile\n";
                     if (currentHolder->getParent()->getName() == "FieldManager")
@@ -807,8 +815,8 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                 HolderNode* holder = dynamic_cast<HolderNode*>(handManager->getChildByTag(handTouched));
                 if (!holder->value())
                 {
-                    holder->setValue(true);
                     currentHolder->setValue(false);
+                    holder->setValue(true);
                     if (currentHolder->getParent()->getName() == "FieldManager")
                         updateCurrentWord('-', currentHolder->getTag());
                     currentHolder = holder;
