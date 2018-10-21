@@ -7,8 +7,6 @@ USING_NS_CC;
 class Unit : public cocos2d::Ref
 {
 public:
-	Unit();
-	~Unit();
 	Unit(int h): iHealth(h){}
 	int health() const { return iHealth; }
 	void setHealth(int h){ iHealth = h; }

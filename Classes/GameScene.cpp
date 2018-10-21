@@ -12,7 +12,7 @@ USING_NS_CC;
 
 Scene* Game::createScene()
 {
-    auto scene = Scene::create();
+    auto scene = Scene::createWithPhysics();
     auto layer = Game::create();
     scene->addChild(layer);
     
@@ -40,14 +40,50 @@ void Game::clearTiles()
     {
         Letter::clearFromNode(node);
     }
+    currentLetter = nullptr;
+    letterManager->removeAllChildrenWithCleanup(true);
 }
 
-void Game::cleanup()
+void Game::clearUnits()
 {
-    for (auto node : letterManager->getChildren())
+    for (auto node : unitManager->getChildren())
+    {
+        Unit::clearFromNode(node);
+    }
+    unitManager->removeAllChildrenWithCleanup(true);
+}
+
+void Game::clearTowers()
+{
+    for (auto node : towerManager->getChildren())
+    {
+        Letter::clearFromNode(node);
+    }
+    currentTower = nullptr;
+    towerManager->removeAllChildrenWithCleanup(true);
+}
+
+void Game::clearHolders()
+{
+    for (auto node : fieldManager->getChildren())
     {
         Holder::clearFromNode(node);
     }
+    for (auto node : handManager->getChildren())
+    {
+        Holder::clearFromNode(node);
+    }
+    currentHolder = nullptr;
+    fieldManager->removeAllChildrenWithCleanup(true);
+    handManager->removeAllChildrenWithCleanup(true);
+}   
+
+void Game::cleanup()
+{
+    clearTiles();
+    clearTowers();
+    clearUnits();
+    clearHolders();
 }
 
 void Game::setupUi()
@@ -116,21 +152,28 @@ void Game::setupUi()
     towerManager->setAnchorPoint(Vec2(0.0, 0.0));
     globalFrame->addChild(towerManager, 0);
 
-    tileManager = Sprite::create();
-    tileManager->setSpriteFrame(lettersSpriteFrame);
-    tileManager->setPosition(0, 0);
-    tileManager->setAnchorPoint(Vec2(0,0));
-    tileManager->setName("TileManager");
-    gameFrame->addChild(tileManager);
+    gridManager = Sprite::create();
+    gridManager->setSpriteFrame(gameSpriteFrame);
+    gridManager->setPosition(0, 0);
+    gridManager->setAnchorPoint(Vec2(0,0));
+    gridManager->setName("GridManager");
+    gameFrame->addChild(gridManager);
+
+    unitManager = Sprite::create();
+    unitManager->setSpriteFrame(gameSpriteFrame);
+    unitManager->setPosition(0, 0);
+    unitManager->setAnchorPoint(Vec2(0,0));
+    unitManager->setName("UnitManager");
+    gameFrame->addChild(unitManager);
 
     int tileCounter = 0;
-    bool map[(int)gameRows][(int)gameColumns] =
-    {{false, false, false, false, true,  true,  false, false, false, false},
-     {false, true,  true,  true,  true,  true,  true,  true,  true,  false},
-     {false, true,  true,  false, false, false, false, true,  true,  false},
-     {false, true,  true,  false, true,  true,  false, true,  true,  false},
-     {false, true,  true,  false, true,  true,  false, true,  true,  false},
-     {false, false, false, false, true,  true,  false, false, false, false}};
+    int map[(int)gameRows][(int)gameColumns] =
+    {{2,  0,  0,  1, -1, -1, 10,  0,  0,  9},
+     {0, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+     {0, -1, -1,  5,  0,  0,  6, -1, -1,  0},
+     {0, -1, -1,  0, -1, -1,  0, -1, -1,  0},
+     {0, -1, -1,  0, -1, -1,  0, -1, -1,  0},
+     {3,  0,  0,  4, -1, -1,  7,  0,  0,  8}};
 
     int currentRow, currentColumn;
     for (float i = 0; i < gameColumns; ++i)
@@ -140,21 +183,33 @@ void Game::setupUi()
             Sprite* tile;
             currentRow = gameRows - 1 - (int)j;
             currentColumn = (int)i;
-            if (map[currentRow][currentColumn])
+            if (map[currentRow][currentColumn] == -1)
             {
                 tile = Sprite::create("Grass.png");
                 tile->setName("Grass");
+                tile->setTag(1000+tileCounter);
+
             }
             else
             {
+                
                 tile = Sprite::create("Path.png");
                 tile->setName("Path");
+                if (map[currentRow][currentColumn] > 0)
+                {
+                    int tag = map[currentRow][currentColumn];
+                    tile->setTag(tag);
+                }
+                else
+                {
+                    tile->setTag(1000+tileCounter);
+                }
             }
 
             tile->setPosition(i*tileSize, j*tileSize);
             tile->setAnchorPoint(Vec2(0,0));
             tile->setScale(scale, scale); // somethines wrong with scaling...
-            tileManager->addChild(tile, 0, tileCounter);
+            gridManager->addChild(tile);
             ++tileCounter;
         }
     }
@@ -162,13 +217,13 @@ void Game::setupUi()
     SpriteFrame* loadingZoneFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, 100.0, 100.0));
     loadingZone = Sprite::create();
     loadingZone->setSpriteFrame(loadingZoneFrame);
-    loadingZone->setPosition(infoFrameWidth*2.0/4.0, infoFrameHeight*(3.0/7.0));
-    loadingZone->setAnchorPoint(Vec2(0.5,0.5));
+    loadingZone->setPosition(infoFrameWidth*1.0/4.0, infoFrameHeight*(3.0/7.0));
+    loadingZone->setAnchorPoint(Vec2(0.0,0.0));
     loadingZone->setName("loadingZone");
     loadingZone->setScale(scale);
     infoFrame->addChild(loadingZone, 0);
 
-    auto doneButton = ui::Button::create("DoneButtonUnclicked.png", "DoneButtonClicked.png", "DoneButtonUnclicked.png");
+    doneButton = ui::Button::create("DoneButtonUnclicked.png", "DoneButtonClicked.png", "DoneButtonUnclicked.png");
     doneButton->setPosition(Vec2(infoFrameWidth*2.0/4.0, infoFrameHeight*(1.0/7.0)));
     doneButton->setAnchorPoint(Vec2(0.5,0.5));
     doneButton->addTouchEventListener(CC_CALLBACK_2(Game::onDone, this));
@@ -260,36 +315,127 @@ void Game::update(float delta)
             wordPhaseDone();
         }
     }
+    if (currentPhase == stKill)
+    {
+        spawnFrequencyTimer -= delta;
+        if (spawnFrequencyTimer <= 0.0 and unitsUnspawned > 0)
+        {
+            spawnEnemy();
+            spawnFrequencyTimer = 1.0;
+        }
+        else if (unitsUnspawned == 0)
+        {
+            if (unitsLeft == 0)
+            {
+                killPhaseDone();
+            }
+        }
+        for (auto node : unitManager->getChildren())
+        {
+            if (Unit::getHealthFromNode(node) == 0)
+            {
+                node->setVisible(false);
+            }
+        }
+    }
 }
+
 
 void Game::wordPhaseDone()
 {
     doCountdown = false;
     Tower* t = createTower(longestWord);
-    Sprite* newTower = Sprite::create("BaseTower.png");
+    towerCount++;
+    //TowerNode* newTower = TowerNode::create("BaseTower.png");
+    TowerNode* newTower = TowerNode::createTower("BaseTower.png");
     newTower->setPosition(infoFrame->convertToWorldSpace(loadingZone->getPosition()));
     newTower->setAnchorPoint(Vec2(0,0));
     newTower->setUserObject(t);
-    newTower->setName("New");
+    newTower->setTag(towerCount);
     newTower->setScale(scale);
+    newTower->setName("Tower");
+    auto range = PhysicsBody::createCircle(200.0);
+    range->setContactTestBitmask(0x01);
+    range->setCategoryBitmask(0x01);
+    range->setCollisionBitmask(0x01);
+    range->setDynamic(false);
+
+    newTower->setPhysicsBody(range);
     towerManager->addChild(newTower);
     gameFrame->setLocalZOrder(1);
     currentPhase = stBuild;
 
+    doneButton->setEnabled(true);
     longestWord = 0;
     sValidWord = "";
     bIsValidWord = false;
+    std::cout << "Word Phase Done\n";
+
 }
 
 void Game::buildPhaseDone()
 {
     currentPhase = stKill;
+    doneButton->setEnabled(false);
+    unitsUnspawned = enemiesPerLevel;
+    std::cout << "Build Phase Done\n";
+}
+
+void Game::killPhaseDone()
+{
+    currentPhase = stWait;
+    unitTagCounter = 0;
+    clearUnits();
+    std::cout << "Kill Phase Done\n";
+}
+
+void Game::spawnEnemy()
+{
+    Unit* u = createUnit(2);
+    unitTagCounter++;
+    std::cout << "spawning enemy " << unitTagCounter << "\n";
+    Sprite* newUnit = Sprite::create("BaseUnit.png");
+    newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
+    newUnit->setAnchorPoint(Vec2(0,0));
+    newUnit->setUserObject(u);
+    newUnit->setTag(unitTagCounter);
+    newUnit->setScale(scale);
+    newUnit->setName("Unit");
+    auto pBox = PhysicsBody::createBox(newUnit->getContentSize());
+    pBox->setCategoryBitmask(0x01);
+    pBox->setCollisionBitmask(0x01);
+    pBox->setContactTestBitmask(0x01);
+    pBox->setDynamic(false);
+
+    newUnit->setPhysicsBody(pBox);
+
+    unitManager->addChild(newUnit);
+    auto action1 = MoveTo::create(3, gridManager->getChildByTag(2)->getPosition());
+    auto action2 = MoveTo::create(5, gridManager->getChildByTag(3)->getPosition());
+    auto action3 = MoveTo::create(3, gridManager->getChildByTag(4)->getPosition());
+    auto action4 = MoveTo::create(3, gridManager->getChildByTag(5)->getPosition());
+    auto action5 = MoveTo::create(3, gridManager->getChildByTag(6)->getPosition());
+    auto action6 = MoveTo::create(3, gridManager->getChildByTag(7)->getPosition());
+    auto action7 = MoveTo::create(3, gridManager->getChildByTag(8)->getPosition());
+    auto action8 = MoveTo::create(5, gridManager->getChildByTag(9)->getPosition());
+    auto action9 = MoveTo::create(3, gridManager->getChildByTag(10)->getPosition());
+    auto sequence = Sequence::create(action1, action2, action3, action4, action5, action6, 
+        action7, action8, action9, nullptr);
+    newUnit->runAction(sequence);
+    unitsUnspawned--;
+    unitsLeft++;
 }
 
 Tower* Game::createTower(unsigned int level)
 {
     Tower* tower = new Tower(1, 1, 1, false);
     return tower;
+}
+
+Unit* Game::createUnit(int health)
+{
+    Unit* unit = new Unit(health);
+    return unit;
 }
 
 void Game::dealTiles()
@@ -389,6 +535,84 @@ void Game::setupEvents()
     touchListener->onTouchMoved = CC_CALLBACK_2(Game::onTouchMove, this);
     touchListener->onTouchEnded = CC_CALLBACK_2(Game::onTouchEnd, this);
     Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(touchListener,globalFrame);
+
+    auto contactListener = EventListenerPhysicsContact::create();
+    contactListener->onContactBegin = CC_CALLBACK_1(Game::onContactBegin, this);
+    contactListener->onContactSeparate = CC_CALLBACK_1(Game::onContactSeparate, this);
+    Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(contactListener, this);
+
+}
+
+bool Game::onContactBegin(PhysicsContact& contact)
+{
+    auto nodeA = contact.getShapeA()->getBody()->getNode();
+    auto nodeB = contact.getShapeB()->getBody()->getNode();
+    std::cout << nodeA->getName() << nodeB->getName() << "\n";
+    if (nodeA && nodeB)
+    {
+        if (nodeA->getName() == "Tower")
+        {
+            if (nodeB->getName() == "Unit")
+            {
+                if (Unit::getHealthFromNode(nodeB) > 0)
+                {
+                    TowerNode* tmp = dynamic_cast<TowerNode*>(nodeA);
+                    tmp->setTarget(nodeB);
+                    std::cout << "contact begin\n";
+
+                }
+
+            }
+        }
+        else if (nodeB->getName() == "Tower")
+        {
+            if (nodeA->getName() == "Unit")
+            {
+                if (Unit::getHealthFromNode(nodeA) > 0)
+                {
+                    TowerNode* tmp = dynamic_cast<TowerNode*>(nodeB);
+                    tmp->setTarget(nodeA);
+                    std::cout << "contact begin\n";
+                }
+            }
+        }
+    }
+
+    //bodies can collide
+    return true;
+}
+
+bool Game::onContactSeparate(PhysicsContact& contact)
+{
+    auto nodeA = contact.getShapeA()->getBody()->getNode();
+    auto nodeB = contact.getShapeB()->getBody()->getNode();
+
+    if (nodeA && nodeB)
+    {
+        if (nodeA->getName() == "Tower")
+        {
+            if (nodeB->getName() == "Unit")
+            {
+                TowerNode* tmp = dynamic_cast<TowerNode*>(nodeA);;
+                tmp->removeTarget();
+                std::cout << "contact end\n";
+
+            }
+        }
+        else if (nodeB->getName() == "Tower")
+        {
+            if (nodeA->getName() == "Unit")
+            {
+                TowerNode* tmp = dynamic_cast<TowerNode*>(nodeB);
+                tmp->removeTarget();
+                std::cout << "contact end\n";
+
+            }
+        }
+    }
+
+    //bodies can collide
+    return true;
 }
 
 void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
@@ -435,10 +659,7 @@ void Game::onDone(Ref* sender, ui::Widget::TouchEventType type)
         case ui::Widget::TouchEventType::BEGAN:
             break;
         case ui::Widget::TouchEventType::ENDED:
-            if (bIsValidWord)
-            {
-                buildPhaseDone();
-            }
+            buildPhaseDone();
             break;
         default:
             break;
@@ -486,17 +707,14 @@ bool Game::onTouchStart(Touch* touch, Event* event)
     }
     else if (currentPhase == stBuild)
     {
-        if (loadingZone->getBoundingBox().containsPoint(infoFrame->convertToNodeSpace(currentLocation)))
+        int towerTouched = touchedTower(currentLocation);
+        if (towerTouched > -1)
         {
             bTowerPickedUp = true;
-            originalLocation = infoFrame->convertToWorldSpace(loadingZone->getPosition());
-            currentTower = towerManager->getChildByName("New");
-            lastTouchLocation = currentLocation;
-        }
-        int spriteTouched = touchedTower(currentLocation);
-        if (spriteTouched > -1)
-        {
+            currentTower = towerManager->getChildByTag(towerTouched);
+            originalLocation = currentTower->getPosition();
             std::cout << "Tower Touched\n";
+            lastTouchLocation = currentLocation;
         }
     }
     return true;
@@ -584,27 +802,27 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
     }
     else if (currentPhase == stBuild)
     {
-
-        // CLEAN THIS UP PLEASE
         if (bTowerPickedUp)
         {
-            int tileTouched = touchedTile(tileManager->convertToNodeSpace(lastTouchLocation));
+            std::cout << lastTouchLocation.x << " " << lastTouchLocation.y << "\n";
+            int tileTouched = touchedTile(lastTouchLocation);
+            std::cout << "tile " << tileTouched << "\n";
+
             if (tileTouched > -1)
             {
-                auto tile = tileManager->getChildByTag(tileTouched);
+                auto tile = gridManager->getChildByTag(tileTouched);
                 if (tile->getName() == "Grass")
                 {
-                    Tower::setEnabledFromNode(currentTower, true);
-                    Vec2 newLocation = tileManager->convertToWorldSpace(tile->getPosition());
+                    Vec2 newLocation = gridManager->convertToWorldSpace(tile->getPosition());
                     auto action = MoveTo::create(0.2, newLocation);
                     currentTower->runAction(action);
                     std::cout << "tile moved to tile " << tileTouched << "\n";
+                    Tower::setEnabledFromNode(currentTower, true);
                 }
                 else
                 {
                     auto action = MoveTo::create(0.2, originalLocation);
                     currentTower->runAction(action);
-
                 }
             }
             else
@@ -666,7 +884,7 @@ int Game::touchedTower(Vec2 location)
 
 int Game::touchedTile(Vec2 location)
 {
-    for (auto node : tileManager->getChildren())
+    for (auto node : gridManager->getChildren())
     {
         if (node->getBoundingBox().containsPoint(location))
             return node->getTag();

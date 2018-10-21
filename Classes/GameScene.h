@@ -3,6 +3,7 @@
 #include "Letter.h"
 #include "Holder.h"
 #include "Unit.h"
+#include "TowerNode.h"
 #include "Tower.h"
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
@@ -16,6 +17,9 @@ public:
     virtual bool init() override;
     void dealTiles();
     void clearTiles();
+    void clearUnits();
+    void clearTowers();
+    void clearHolders();    
     void cleanup();
     std::string getWord(){ return sValidWord; }
     bool isValidWord(){ return bIsValidWord; }
@@ -34,7 +38,8 @@ private:
 
 	// gameFrame
 	Sprite* gameFrame;
-	Sprite* tileManager;
+	Sprite* gridManager;
+	Sprite* unitManager;
 
 	// lettersFrame
 	Sprite* lettersFrame;
@@ -49,6 +54,7 @@ private:
 	Label* moneyLabel;
 	Label* timeLabel;
 	Sprite* loadingZone;
+	ui::Widget* doneButton;
 
 	// helpers
 	Node* currentLetter;
@@ -68,18 +74,25 @@ private:
 	unsigned int longestWord;
 	int money;
 	bool doCountdown = true;
-	float levelTimer = 5.0;
+	float levelTimer = 1.0;
+	float spawnFrequencyTimer = 1.0;
+	int towerCount = 0;
+	int unitTagCounter = 0;
+	unsigned int currentLevel = 1;
+	unsigned int unitsUnspawned;
+	unsigned int unitsLeft;
 
 
 
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);
 	bool onTouchEnd(Touch* touch, Event* event);
+	bool onContactBegin(PhysicsContact& contact);
+	bool onContactSeparate(PhysicsContact& contact);
 	void updateCurrentWord(char letter, int index);
 	void updateValidWord();
 	enum ePhases{stWait, stWord, stBuild, stKill};
 	ePhases currentPhase;
-	enum eGameManagers{eTileManager};
 	enum eLettersManagers{eLetterManager, eFieldManager, eHandManager, eSubmitButton};
 	int touchedLetter(Vec2 location);
 	int touchedTile(Vec2 location);
@@ -91,10 +104,13 @@ private:
 	void updateMoney();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
+	void spawnEnemy();
 
-	Tower* createTower(unsigned int level);
+	Tower* createTower(unsigned int level); 
+	Unit* createUnit(int health);
 	void wordPhaseDone();
 	void buildPhaseDone();
+	void killPhaseDone();
 
 
 
@@ -111,6 +127,8 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
+	int numCorners = 10;
+	unsigned int enemiesPerLevel = 8;
 };
 
 #endif // __GAME_SCENE_H__
