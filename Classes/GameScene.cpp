@@ -28,15 +28,14 @@ bool Game::init()
     loadAllWords();
     setupUi();
     setupEvents();
-    dealTiles();
     this->scheduleUpdate();
-    currentPhase = stWord;
-    currentLevel = 1;
+    killPhaseDone();
     return true;
 }
 
 void Game::clearTiles()
 {
+    bLetterPickedUp = false;
     currentLetter = nullptr;
     letterManager->removeAllChildrenWithCleanup(true);
 }
@@ -48,6 +47,7 @@ void Game::clearUnits()
 
 void Game::clearTowers()
 {
+    bTowerPickedUp = false;
     currentTower = nullptr;
     towerManager->removeAllChildrenWithCleanup(true);
 }
@@ -252,11 +252,17 @@ void Game::setupUi()
     letterManager->setName("LetterManager");
     lettersFrame->addChild(letterManager, 0, eLetterManager);
 
-    auto submitButton = ui::Button::create("SubmitButtonUnclicked.png", "SubmitButtonClicked.png", "SubmitButtonUnclicked.png");
-    submitButton->setPosition(Vec2(gameFrameWidth*4.0/9.0, gameFrameHeight*(1.0/7.0)));
+    submitButton = ui::Button::create("SubmitButtonUnclicked.png", "SubmitButtonClicked.png", "SubmitButtonUnclicked.png");
+    submitButton->setPosition(Vec2(gameFrameWidth*3.0/9.0, gameFrameHeight*(1.0/7.0)));
     submitButton->setAnchorPoint(Vec2(0.0,0.0));
     submitButton->addTouchEventListener(CC_CALLBACK_2(Game::onSubmit, this));
     lettersFrame->addChild(submitButton, 0, eSubmitButton);
+
+    startButton = ui::Button::create("StartButtonUnclicked.png", "StartButtonClicked.png", "StartButtonUnclicked.png");
+    startButton->setPosition(Vec2(gameFrameWidth*6.0/9.0, gameFrameHeight*(1.0/7.0)));
+    startButton->setAnchorPoint(Vec2(0.0,0.0));
+    startButton->addTouchEventListener(CC_CALLBACK_2(Game::onStart, this));
+    lettersFrame->addChild(startButton, 0, eSubmitButton);
 
     for (int i = 0; i<numLetters; ++i)
     {
@@ -310,14 +316,27 @@ void Game::update(float delta)
         for (auto node : unitManager->getChildren())
         {
             UnitNode* tmp = dynamic_cast<UnitNode*>(node);
-            if (tmp->health() == 0)
+            if (tmp->justDied())
             {
-                tmp->setVisible(false);
+                tmp->setJustDied(false);
+                unitsLeft--;
+                std::cout << unitsLeft << " units left\n";
             }
         }
     }
 }
 
+
+void Game::waitPhaseDone()
+{
+    startButton->setEnabled(false);
+    submitButton->setEnabled(true);
+    dealTiles();
+    doCountdown = true;
+    levelTimer = levelTime;
+    currentPhase = stWord;
+    std::cout << "Wait Phase Done\n";
+}
 
 void Game::wordPhaseDone()
 {
@@ -325,31 +344,42 @@ void Game::wordPhaseDone()
     towerCount++;
     TowerNode* newTower = createTower(towerCount, currentLevel);
     towerManager->addChild(newTower);
+    lettersFrame->setLocalZOrder(0);
     gameFrame->setLocalZOrder(1);
-    currentPhase = stBuild;
+    globalFrame->setLocalZOrder(2);
 
+    submitButton->setEnabled(false);
     doneButton->setEnabled(true);
     longestWord = 0;
     sValidWord = "";
     bIsValidWord = false;
+    clearTiles();
+    currentPhase = stBuild;
     std::cout << "Word Phase Done\n";
 
 }
 
 void Game::buildPhaseDone()
 {
-    currentPhase = stKill;
+    bTowerPickedUp = false;
     doneButton->setEnabled(false);
     unitsUnspawned = enemiesPerLevel;
+    currentPhase = stKill;
     std::cout << "Build Phase Done\n";
 }
 
 void Game::killPhaseDone()
 {
-    currentPhase = stWait;
     unitTagCounter = 0;
     clearUnits();
+    lettersFrame->setLocalZOrder(2);
+    globalFrame->setLocalZOrder(1);
+    gameFrame->setLocalZOrder(0);
+    startButton->setEnabled(true);
+    currentLevel++;
+    currentPhase = stWait;
     std::cout << "Kill Phase Done\n";
+
 }
 
 void Game::spawnEnemy()
@@ -520,7 +550,6 @@ bool Game::onContactBegin(PhysicsContact& contact)
 {
     auto nodeA = contact.getShapeA()->getBody()->getNode();
     auto nodeB = contact.getShapeB()->getBody()->getNode();
-    std::cout << nodeA->getName() << nodeB->getName() << "\n";
     if (nodeA && nodeB)
     {
         if (nodeA->getName() == "Tower")
@@ -532,7 +561,7 @@ bool Game::onContactBegin(PhysicsContact& contact)
 
                 if (tmpB->health() > 0)
                 {
-                    tmpA->setTarget(tmpB);
+                    tmpA->addTarget(tmpB);
                     std::cout << "Tower " << tmpA->getTag() << " targetting Unit" << tmpB->getTag() << "\n";
                 }
 
@@ -546,7 +575,7 @@ bool Game::onContactBegin(PhysicsContact& contact)
                 TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
                 if (tmpA->health() > 0)
                 {
-                    tmpB->setTarget(tmpA);
+                    tmpB->addTarget(tmpA);
                     std::cout << "Tower " << tmpB->getTag() << " targetting Unit" << tmpA->getTag() << "\n";
                 }
             }
@@ -568,8 +597,9 @@ bool Game::onContactSeparate(PhysicsContact& contact)
         {
             if (nodeB->getName() == "Unit")
             {
-                TowerNode* tmp = dynamic_cast<TowerNode*>(nodeA);;
-                tmp->removeTarget();
+                TowerNode* tmpA = dynamic_cast<TowerNode*>(nodeA);
+                UnitNode* tmpB = dynamic_cast<UnitNode*>(nodeB);
+                tmpA->removeTarget(tmpB);
                 std::cout << "Tower " << nodeA->getTag() << " out of range for Unit " << nodeB->getTag() << "\n";
 
             }
@@ -578,8 +608,9 @@ bool Game::onContactSeparate(PhysicsContact& contact)
         {
             if (nodeA->getName() == "Unit")
             {
-                TowerNode* tmp = dynamic_cast<TowerNode*>(nodeB);
-                tmp->removeTarget();
+                TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
+                UnitNode* tmpA = dynamic_cast<UnitNode*>(nodeB);
+                tmpB->removeTarget(tmpA);
                 std::cout << "Tower " << nodeB->getTag() << " out of range for Unit " << nodeA->getTag() << "\n";
 
             }
@@ -597,29 +628,49 @@ void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
         case ui::Widget::TouchEventType::BEGAN:
             break;
         case ui::Widget::TouchEventType::ENDED:
-            if (bIsValidWord)
+            if (currentPhase == stWord)
             {
-                if (std::find(vWordsUsed.begin(), vWordsUsed.end(), sValidWord) == vWordsUsed.end())
+                if (bIsValidWord)
                 {
-                    vWordsUsed.push_back(sValidWord);
-                    if (sValidWord.length() == 3)
-                        money += 1;
-                    else if (sValidWord.length() ==4)
-                        money += 2;
-                    else if (sValidWord.length() ==5)
-                        money += 3;
-                    else if (sValidWord.length() ==6)
-                        money += 5;
-                    else if (sValidWord.length() ==7)
-                        money += 7;
-                    else if (sValidWord.length() ==8)
-                        money += 10;
-                    else 
-                        money += 20;
-                    moneyLabel->setString(std::to_string(money));
-                    if (sValidWord.length() > longestWord)
-                        longestWord = sValidWord.length();
+                    if (std::find(vWordsUsed.begin(), vWordsUsed.end(), sValidWord) == vWordsUsed.end())
+                    {
+                        vWordsUsed.push_back(sValidWord);
+                        if (sValidWord.length() == 3)
+                            money += 1;
+                        else if (sValidWord.length() ==4)
+                            money += 2;
+                        else if (sValidWord.length() ==5)
+                            money += 3;
+                        else if (sValidWord.length() ==6)
+                            money += 5;
+                        else if (sValidWord.length() ==7)
+                            money += 7;
+                        else if (sValidWord.length() ==8)
+                            money += 10;
+                        else 
+                            money += 20;
+                        moneyLabel->setString(std::to_string(money));
+                        if (sValidWord.length() > longestWord)
+                            longestWord = sValidWord.length();
+                    }
                 }
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void Game::onStart(Ref* sender, ui::Widget::TouchEventType type)
+{
+    switch (type)
+    {
+        case ui::Widget::TouchEventType::BEGAN:
+            break;
+        case ui::Widget::TouchEventType::ENDED:
+            if (currentPhase == stWait)
+            {
+                waitPhaseDone();
             }
             break;
         default:
@@ -634,7 +685,10 @@ void Game::onDone(Ref* sender, ui::Widget::TouchEventType type)
         case ui::Widget::TouchEventType::BEGAN:
             break;
         case ui::Widget::TouchEventType::ENDED:
-            buildPhaseDone();
+            if (currentPhase == stBuild)
+            {
+                buildPhaseDone();                
+            }
             break;
         default:
             break;

@@ -24,7 +24,6 @@ public:
     bool isValidWord(){ return bIsValidWord; }
     CREATE_FUNC(Game);
     void update(float delta) override;
-
 private:
 	float fWindowHeight, fWindowWidth;
 	void setupUi();
@@ -45,6 +44,8 @@ private:
 	Sprite* letterManager;
 	Sprite* fieldManager;
 	Sprite* handManager;
+	ui::Widget* submitButton;
+	ui::Widget* startButton;
 
 
 	// infoFrame
@@ -72,9 +73,8 @@ private:
 	std::vector<std::string> vWordsUsed;
 	unsigned int longestWord;
 	int money;
-	bool doCountdown = true;
+	bool doCountdown = false;
 	float levelTimer = 1.0;
-	float spawnFrequencyTimer = 1.0;
 	int towerCount = 0;
 	int unitTagCounter = 0;
 	unsigned int unitsUnspawned;
@@ -102,6 +102,7 @@ private:
 	void loadAllWords();
 	void updateMoney();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
+	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
 
@@ -110,6 +111,7 @@ private:
 	void wordPhaseDone();
 	void buildPhaseDone();
 	void killPhaseDone();
+	void waitPhaseDone();
 
 
 
@@ -120,12 +122,14 @@ private:
 	std::string letterHolderImage = "LetterHolder.png";
 
 	// Parameters
+	float spawnFrequencyTimer = 1.0;
 	int numLetters = 9;
 	float scale = 1.0;
 	float numRows = 6.0;
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
+	float levelTime = 10.0;
 	int numCorners = 10;
 	unsigned int enemiesPerLevel = 8;
 };

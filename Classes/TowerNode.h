@@ -18,22 +18,34 @@ public:
     void setAttackSpeed(int as) { iAttackSpeed = as; }
     int upgradeModifier() const { return iUpgradeModifer; }
     void setUpgradeModifier(int um){ iUpgradeModifer = um; }
-	void setTarget(UnitNode* _target)
+	void addTarget(UnitNode* _target)
 	{
 		hasTarget = true;
-		target = _target;
+		targets.push_back(_target);
 	}
 
-	void removeTarget()
+	void removeTarget(UnitNode* _target)
 	{
-		hasTarget = false;
-		target = nullptr;
+		std::vector<UnitNode*>::iterator indx = lower_bound(targets.begin(),targets.end(), _target);
+		int pos=indx-targets.begin();
+		if(indx == targets.end() || *indx!=_target)
+		{
+		 	std::cout<< "Unit " <<_target->getTag()<<" not found";
+		}
+		else
+		{
+			targets.erase(targets.begin()+pos);
+			if (targets.size() == 0)
+			{
+				hasTarget = false;
+			}
+		}
 	}
 
 	void update(float delta) override;
 
 private:
-	UnitNode* target;
+	std::vector<UnitNode*> targets;
 	bool hasTarget = false;
 	float attackTimer = 1.0;
 	int iDamage = 1;
