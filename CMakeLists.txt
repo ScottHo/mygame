@@ -56,19 +56,17 @@ include_directories(
 list(APPEND GAME_SOURCE
      Classes/AppDelegate.cpp
      Classes/GameScene.cpp
-     Classes/Letter.cpp
-     Classes/Holder.cpp
-     Classes/Unit.cpp
-     Classes/Tower.cpp
+     Classes/LetterNode.cpp
+     Classes/HolderNode.cpp
+     Classes/UnitNode.cpp
      Classes/TowerNode.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
      Classes/GameScene.h
-     Classes/Letter.h
-     Classes/Holder.h
-     Classes/Unit.h
-     Classes/Tower.h
+     Classes/LetterNode.h
+     Classes/HolderNode.h
+     Classes/UnitNode.h
      Classes/TowerNode.h
      )
 

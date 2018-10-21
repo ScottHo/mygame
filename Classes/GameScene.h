@@ -1,10 +1,9 @@
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
-#include "Letter.h"
-#include "Holder.h"
-#include "Unit.h"
 #include "TowerNode.h"
-#include "Tower.h"
+#include "UnitNode.h"
+#include "LetterNode.h"
+#include "HolderNode.h"
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include <string>
@@ -57,9 +56,9 @@ private:
 	ui::Widget* doneButton;
 
 	// helpers
-	Node* currentLetter;
-	Node* currentHolder;
-	Node* currentTower;
+	LetterNode* currentLetter;
+	HolderNode* currentHolder;
+	TowerNode* currentTower;
 
 
 	// --- Private Variables ---
@@ -78,9 +77,9 @@ private:
 	float spawnFrequencyTimer = 1.0;
 	int towerCount = 0;
 	int unitTagCounter = 0;
-	unsigned int currentLevel = 1;
 	unsigned int unitsUnspawned;
 	unsigned int unitsLeft;
+	int currentLevel = 0;
 
 
 
@@ -106,8 +105,8 @@ private:
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
 
-	Tower* createTower(unsigned int level); 
-	Unit* createUnit(int health);
+	TowerNode* createTower(int tag, int level); 
+	UnitNode* createUnit(int tag, int health);
 	void wordPhaseDone();
 	void buildPhaseDone();
 	void killPhaseDone();

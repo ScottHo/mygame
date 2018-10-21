@@ -31,48 +31,29 @@ bool Game::init()
     dealTiles();
     this->scheduleUpdate();
     currentPhase = stWord;
+    currentLevel = 1;
     return true;
 }
 
 void Game::clearTiles()
 {
-    for (auto node : letterManager->getChildren())
-    {
-        Letter::clearFromNode(node);
-    }
     currentLetter = nullptr;
     letterManager->removeAllChildrenWithCleanup(true);
 }
 
 void Game::clearUnits()
 {
-    for (auto node : unitManager->getChildren())
-    {
-        Unit::clearFromNode(node);
-    }
     unitManager->removeAllChildrenWithCleanup(true);
 }
 
 void Game::clearTowers()
 {
-    for (auto node : towerManager->getChildren())
-    {
-        Letter::clearFromNode(node);
-    }
     currentTower = nullptr;
     towerManager->removeAllChildrenWithCleanup(true);
 }
 
 void Game::clearHolders()
 {
-    for (auto node : fieldManager->getChildren())
-    {
-        Holder::clearFromNode(node);
-    }
-    for (auto node : handManager->getChildren())
-    {
-        Holder::clearFromNode(node);
-    }
     currentHolder = nullptr;
     fieldManager->removeAllChildrenWithCleanup(true);
     handManager->removeAllChildrenWithCleanup(true);
@@ -280,9 +261,7 @@ void Game::setupUi()
     for (int i = 0; i<numLetters; ++i)
     {
         double count = i + 1.0;
-        auto letterHolder = Sprite::create(letterHolderImage);
-        auto holder = new Holder(false);
-        letterHolder->setUserObject(holder);
+        auto letterHolder = HolderNode::createHolder(letterHolderImage);
         letterHolder->setPosition(gameFrameWidth*count/11.0, gameFrameHeight*(3.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         letterHolder->setScale(1.3, 1.3);
@@ -292,9 +271,7 @@ void Game::setupUi()
     for (int i = 0; i<numLetters; ++i)
     {
         double count = i + 1.0;
-        auto letterHolder = Sprite::create(letterHolderImage);
-        auto holder = new Holder(false);
-        letterHolder->setUserObject(holder);
+        auto letterHolder = HolderNode::createHolder(letterHolderImage);
         letterHolder->setPosition(gameFrameWidth*count/11.0, gameFrameHeight*(5.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
         letterHolder->setScale(1.3, 1.3);
@@ -332,9 +309,10 @@ void Game::update(float delta)
         }
         for (auto node : unitManager->getChildren())
         {
-            if (Unit::getHealthFromNode(node) == 0)
+            UnitNode* tmp = dynamic_cast<UnitNode*>(node);
+            if (tmp->health() == 0)
             {
-                node->setVisible(false);
+                tmp->setVisible(false);
             }
         }
     }
@@ -344,23 +322,8 @@ void Game::update(float delta)
 void Game::wordPhaseDone()
 {
     doCountdown = false;
-    Tower* t = createTower(longestWord);
     towerCount++;
-    //TowerNode* newTower = TowerNode::create("BaseTower.png");
-    TowerNode* newTower = TowerNode::createTower("BaseTower.png");
-    newTower->setPosition(infoFrame->convertToWorldSpace(loadingZone->getPosition()));
-    newTower->setAnchorPoint(Vec2(0,0));
-    newTower->setUserObject(t);
-    newTower->setTag(towerCount);
-    newTower->setScale(scale);
-    newTower->setName("Tower");
-    auto range = PhysicsBody::createCircle(200.0);
-    range->setContactTestBitmask(0x01);
-    range->setCategoryBitmask(0x01);
-    range->setCollisionBitmask(0x01);
-    range->setDynamic(false);
-
-    newTower->setPhysicsBody(range);
+    TowerNode* newTower = createTower(towerCount, currentLevel);
     towerManager->addChild(newTower);
     gameFrame->setLocalZOrder(1);
     currentPhase = stBuild;
@@ -391,24 +354,9 @@ void Game::killPhaseDone()
 
 void Game::spawnEnemy()
 {
-    Unit* u = createUnit(2);
     unitTagCounter++;
     std::cout << "spawning enemy " << unitTagCounter << "\n";
-    Sprite* newUnit = Sprite::create("BaseUnit.png");
-    newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
-    newUnit->setAnchorPoint(Vec2(0,0));
-    newUnit->setUserObject(u);
-    newUnit->setTag(unitTagCounter);
-    newUnit->setScale(scale);
-    newUnit->setName("Unit");
-    auto pBox = PhysicsBody::createBox(newUnit->getContentSize());
-    pBox->setCategoryBitmask(0x01);
-    pBox->setCollisionBitmask(0x01);
-    pBox->setContactTestBitmask(0x01);
-    pBox->setDynamic(false);
-
-    newUnit->setPhysicsBody(pBox);
-
+    UnitNode* newUnit = createUnit(unitTagCounter, currentLevel);
     unitManager->addChild(newUnit);
     auto action1 = MoveTo::create(3, gridManager->getChildByTag(2)->getPosition());
     auto action2 = MoveTo::create(5, gridManager->getChildByTag(3)->getPosition());
@@ -426,16 +374,43 @@ void Game::spawnEnemy()
     unitsLeft++;
 }
 
-Tower* Game::createTower(unsigned int level)
+TowerNode* Game::createTower(int tag, int level)
 {
-    Tower* tower = new Tower(1, 1, 1, false);
-    return tower;
+    TowerNode* newTower = TowerNode::createTower("BaseTower.png");
+    newTower->setDamage(level);
+    newTower->setPosition(infoFrame->convertToWorldSpace(loadingZone->getPosition()));
+    newTower->setAnchorPoint(Vec2(0,0));
+    newTower->setTag(tag);
+    newTower->setScale(scale);
+    newTower->setName("Tower");
+    auto range = PhysicsBody::createCircle(200.0);
+    range->setContactTestBitmask(0x01);
+    range->setCategoryBitmask(0x01);
+    range->setCollisionBitmask(0x01);
+    range->setDynamic(false);
+
+    newTower->setPhysicsBody(range);
+    return newTower;
+
 }
 
-Unit* Game::createUnit(int health)
+UnitNode* Game::createUnit(int tag, int level)
 {
-    Unit* unit = new Unit(health);
-    return unit;
+    UnitNode* newUnit = UnitNode::createUnit("BaseUnit.png");
+    newUnit->setHealth(level);
+    newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
+    newUnit->setAnchorPoint(Vec2(0,0));
+    newUnit->setTag(tag);
+    newUnit->setScale(scale);
+    newUnit->setName("Unit");
+    auto pBox = PhysicsBody::createBox(newUnit->getContentSize());
+    pBox->setCategoryBitmask(0x01);
+    pBox->setCollisionBitmask(0x01);
+    pBox->setContactTestBitmask(0x01);
+    pBox->setDynamic(false);
+
+    newUnit->setPhysicsBody(pBox);
+    return newUnit;
 }
 
 void Game::dealTiles()
@@ -443,14 +418,12 @@ void Game::dealTiles()
     std::string randomLetters = generateRandomLetters();
     for (int i = 0; i<numLetters; ++i)
     {
-        auto letter = new Letter(randomLetters.at(i), 1);
         std::string filename = "";
-        filename += letter->value();
+        filename += randomLetters.at(i);
         filename += ".png";
         std::cout << filename << "\n";
-        auto sprite = Sprite::create(filename);
+        auto sprite = LetterNode::createLetter(filename);
         auto holder = handManager->getChildByTag(i);
-        sprite->setUserObject(letter);
         sprite->setPosition(holder->getPosition());
         sprite->setAnchorPoint(Vec2(0.5, 0.5));
         sprite->setScale(1.2, 1.2);
@@ -554,12 +527,13 @@ bool Game::onContactBegin(PhysicsContact& contact)
         {
             if (nodeB->getName() == "Unit")
             {
-                if (Unit::getHealthFromNode(nodeB) > 0)
-                {
-                    TowerNode* tmp = dynamic_cast<TowerNode*>(nodeA);
-                    tmp->setTarget(nodeB);
-                    std::cout << "contact begin\n";
+                TowerNode* tmpA = dynamic_cast<TowerNode*>(nodeA);
+                UnitNode* tmpB = dynamic_cast<UnitNode*>(nodeB);
 
+                if (tmpB->health() > 0)
+                {
+                    tmpA->setTarget(tmpB);
+                    std::cout << "Tower " << tmpA->getTag() << " targetting Unit" << tmpB->getTag() << "\n";
                 }
 
             }
@@ -568,11 +542,12 @@ bool Game::onContactBegin(PhysicsContact& contact)
         {
             if (nodeA->getName() == "Unit")
             {
-                if (Unit::getHealthFromNode(nodeA) > 0)
+                UnitNode* tmpA = dynamic_cast<UnitNode*>(nodeA);
+                TowerNode* tmpB = dynamic_cast<TowerNode*>(nodeB);
+                if (tmpA->health() > 0)
                 {
-                    TowerNode* tmp = dynamic_cast<TowerNode*>(nodeB);
-                    tmp->setTarget(nodeA);
-                    std::cout << "contact begin\n";
+                    tmpB->setTarget(tmpA);
+                    std::cout << "Tower " << tmpB->getTag() << " targetting Unit" << tmpA->getTag() << "\n";
                 }
             }
         }
@@ -595,7 +570,7 @@ bool Game::onContactSeparate(PhysicsContact& contact)
             {
                 TowerNode* tmp = dynamic_cast<TowerNode*>(nodeA);;
                 tmp->removeTarget();
-                std::cout << "contact end\n";
+                std::cout << "Tower " << nodeA->getTag() << " out of range for Unit " << nodeB->getTag() << "\n";
 
             }
         }
@@ -605,7 +580,7 @@ bool Game::onContactSeparate(PhysicsContact& contact)
             {
                 TowerNode* tmp = dynamic_cast<TowerNode*>(nodeB);
                 tmp->removeTarget();
-                std::cout << "contact end\n";
+                std::cout << "Tower " << nodeB->getTag() << " out of range for Unit " << nodeA->getTag() << "\n";
 
             }
         }
@@ -689,19 +664,19 @@ bool Game::onTouchStart(Touch* touch, Event* event)
                 if (fieldTouched > -1)
                 {
                     originalLocation = fieldManager->getChildByTag(fieldTouched)->getPosition();
-                    currentHolder = fieldManager->getChildByTag(fieldTouched);
+                    currentHolder = dynamic_cast<HolderNode*>(fieldManager->getChildByTag(fieldTouched));
                 }
                 else if (handTouched > -1)
                 {
                     originalLocation = handManager->getChildByTag(handTouched)->getPosition();
-                    currentHolder = handManager->getChildByTag(handTouched);
+                    currentHolder = dynamic_cast<HolderNode*>(handManager->getChildByTag(handTouched));
                 }
                 else
                 {
                     std::cout << "something went wrong\n";
                 }
                 lastTouchLocation = currentLocation;
-                currentLetter = letterManager->getChildByTag(spriteTouched);
+                currentLetter = dynamic_cast<LetterNode*>(letterManager->getChildByTag(spriteTouched));
             }
         }
     }
@@ -711,7 +686,7 @@ bool Game::onTouchStart(Touch* touch, Event* event)
         if (towerTouched > -1)
         {
             bTowerPickedUp = true;
-            currentTower = towerManager->getChildByTag(towerTouched);
+            currentTower = dynamic_cast<TowerNode*>(towerManager->getChildByTag(towerTouched));
             originalLocation = currentTower->getPosition();
             std::cout << "Tower Touched\n";
             lastTouchLocation = currentLocation;
@@ -752,11 +727,12 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
 
             if (fieldTouched > -1)
             {
-                auto holder = fieldManager->getChildByTag(fieldTouched);
-                if (!Holder::getValueFromNode(holder))
+                HolderNode* holder = dynamic_cast<HolderNode*>(fieldManager->getChildByTag(fieldTouched));
+
+                if (!holder->value())
                 {
-                    Holder::setValueFromNode(holder, true);
-                    Holder::setValueFromNode(currentHolder, false);
+                    holder->setValue(true);
+                    currentHolder->setValue(false);
                     std::cout << holder->getTag() << " has tile\n";
                     std::cout << currentHolder->getTag() << " has no tile\n";
                     if (currentHolder->getParent()->getName() == "FieldManager")
@@ -764,7 +740,7 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                     currentHolder = holder;
                     auto action = MoveTo::create(0.2, holder->getPosition());
                     currentLetter->runAction(action);
-                    updateCurrentWord(Letter::getLetterFromNode(currentLetter), fieldTouched);
+                    updateCurrentWord(currentLetter->value(), fieldTouched);
                 }
                 else
                 {
@@ -774,11 +750,11 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
             }
             else if (handTouched > -1)
             {
-                auto holder = handManager->getChildByTag(handTouched);
-                if (!Holder::getValueFromNode(holder))
+                HolderNode* holder = dynamic_cast<HolderNode*>(handManager->getChildByTag(handTouched));
+                if (!holder->value())
                 {
-                    Holder::setValueFromNode(holder, true);
-                    Holder::setValueFromNode(currentHolder, false);
+                    holder->setValue(true);
+                    currentHolder->setValue(false);
                     if (currentHolder->getParent()->getName() == "FieldManager")
                         updateCurrentWord('-', currentHolder->getTag());
                     currentHolder = holder;
@@ -817,7 +793,7 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                     auto action = MoveTo::create(0.2, newLocation);
                     currentTower->runAction(action);
                     std::cout << "tile moved to tile " << tileTouched << "\n";
-                    Tower::setEnabledFromNode(currentTower, true);
+                    currentTower->setEnabled(true);
                 }
                 else
                 {
