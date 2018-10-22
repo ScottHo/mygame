@@ -412,8 +412,11 @@ void Game::spawnEnemy()
 
 TowerNode* Game::createTower(int tag, int level)
 {
-    TowerNode* newTower = TowerNode::createTower("BaseTower.png");
+    std::stringstream ss;
+    ss << "Tower" << level << "Idle.png";
+    TowerNode* newTower = TowerNode::createTower(ss.str());
     newTower->setDamage(level);
+    newTower->setLevel(level);
     newTower->setPosition(infoFrame->convertToWorldSpace(loadingZone->getPosition()));
     newTower->setAnchorPoint(Vec2(0,0));
     newTower->setTag(tag);

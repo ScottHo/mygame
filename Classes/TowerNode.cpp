@@ -17,11 +17,15 @@ void TowerNode::update(float delta)
 	if (hasTarget)
 	{
 		attackTimer -= delta;
+
 		if (attackTimer <= 0.0)
 		{
 			int health = targets[0]->health();
 			if (health > 0)
 			{
+				std::stringstream ss;
+				ss << "Tower" << iLevel << "Shooting.png";
+				setTexture(ss.str());
 				targets[0]->setHealth(health-iDamage);
 				std::cout << "Health down: " << health << "\n";
 				if (targets[0]->health() <= 0)
@@ -37,8 +41,12 @@ void TowerNode::update(float delta)
 				}
 			}
 			attackTimer = 1.0;
-			
-
+		}
+		else if (attackTimer <= 4.0)
+		{
+			std::stringstream ss;
+			ss << "Tower" << iLevel << "Idle.png";
+			setTexture(ss.str());
 		}
 	}
 }

@@ -18,6 +18,8 @@ public:
     void setAttackSpeed(int as) { iAttackSpeed = as; }
     int upgradeModifier() const { return iUpgradeModifer; }
     void setUpgradeModifier(int um){ iUpgradeModifer = um; }
+    int level() const { return iLevel; }
+    void setLevel(int l){ iLevel = l; }
 	void addTarget(UnitNode* _target)
 	{
 		hasTarget = true;
@@ -51,6 +53,7 @@ private:
 	int iDamage = 1;
 	int iAttackSpeed = 1;
 	int iUpgradeModifer = 1;
+	int iLevel = 3;
 	bool bEnabled = false;
 };
 #endif // __TOWERNODE_H__
