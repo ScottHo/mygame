@@ -35,6 +35,9 @@ private:
 	int iAttackSpeed = 1;
 	int iUpgradeModifer = 1;
 	int iLevel = 3;
+
+	void setIdle();
+	void setShooting();
 };
 #endif // __TOWERNODE_H__
 

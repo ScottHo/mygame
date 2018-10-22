@@ -225,26 +225,31 @@ void Game::setupUi()
     doneButton->addTouchEventListener(CC_CALLBACK_2(Game::onDone, this));
     infoFrame->addChild(doneButton);
 
-    auto moneyPrefix = Label::createWithSystemFont("$", "Arial", 16);
-    moneyPrefix->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*(5.0/7.0)));
-    moneyPrefix->setAnchorPoint(Vec2(0.5, 0.5));
-    infoFrame->addChild(moneyPrefix);
-    moneyLabel = Label::createWithSystemFont("0", "Arial", 16);
-    moneyLabel->setPosition(Vec2(infoFrameWidth*4.0/6.0, infoFrameHeight*(5.0/7.0)));
+    moneyLabel = Label::createWithSystemFont("$0", "Arial", 16);
+    moneyLabel->setString("$" + std::to_string(money));
+    moneyLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*(5.0/9.0)));
     moneyLabel->setAnchorPoint(Vec2(0.5, 0.5));
     infoFrame->addChild(moneyLabel);
 
-    auto timePrefix = Label::createWithSystemFont("0:", "Arial", 16);
-    timePrefix->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*6.0/7.0));
-    timePrefix->setAnchorPoint(Vec2(0.5, 0.5));
-    infoFrame->addChild(timePrefix);
-    timeLabel = Label::createWithSystemFont("", "Arial", 16);
+    timeLabel = Label::createWithSystemFont("0:00", "Arial", 16);
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(0) << levelTimer;
+    ss << "0:"  << std::setw(2) << std::setfill('0') << std::fixed << std::setprecision(0) << levelTimer;
     timeLabel->setString(ss.str());
-    timeLabel->setPosition(Vec2(infoFrameWidth*4.0/6.0, infoFrameHeight*6.0/7.0));
+    timeLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*6.0/9.0));
     timeLabel->setAnchorPoint(Vec2(0.5, 0.5));
     infoFrame->addChild(timeLabel);
+
+    levelLabel = Label::createWithSystemFont("0", "Arial", 16);
+    levelLabel->setString("Level " + std::to_string(currentLevel));
+    levelLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*7.0/9.0));
+    levelLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    infoFrame->addChild(levelLabel);
+
+    lifeLabel = Label::createWithSystemFont("", "Arial", 16);
+    lifeLabel->setString(std::to_string(currentLife) + " Lives");
+    lifeLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*8.0/9.0));
+    lifeLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    infoFrame->addChild(lifeLabel);
 
     fieldManager = Sprite::create();
     fieldManager->setSpriteFrame(gameSpriteFrame);
@@ -340,6 +345,14 @@ void Game::update(float delta)
                     unitsLeft--;
                     std::cout << unitsLeft << " units left\n";
                 }
+                else if (tmp->reachedGoal())
+                {
+                    tmp->setVisible(false);
+                    tmp->setHealth(-1);
+                    tmp->unsetReachedGoal();
+                    loseLife();
+                    unitsLeft--;
+                }
             }
             break;
         default:
@@ -408,6 +421,7 @@ void Game::killPhaseDone()
     gameFrame->setLocalZOrder(0);
     startButton->setEnabled(true);
     currentLevel++;
+    levelLabel->setString("Level " + std::to_string(currentLevel));
     currentPhase = stWait;
     std::cout << "Kill Phase Done\n";
 
@@ -428,8 +442,9 @@ void Game::spawnEnemy()
     auto action7 = MoveTo::create(3, gridManager->getChildByTag(8)->getPosition());
     auto action8 = MoveTo::create(5, gridManager->getChildByTag(9)->getPosition());
     auto action9 = MoveTo::create(3, gridManager->getChildByTag(10)->getPosition());
+    auto action10 = CallFunc::create(CC_CALLBACK_0(UnitNode::setReachedGoal, newUnit));
     auto sequence = Sequence::create(action1, action2, action3, action4, action5, action6, 
-        action7, action8, action9, nullptr);
+        action7, action8, action9, action10, nullptr);
     newUnit->runAction(sequence);
     unitsUnspawned--;
 }
@@ -691,7 +706,7 @@ void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
                             money += 10;
                         else 
                             money += 20;
-                        moneyLabel->setString(std::to_string(money));
+                        moneyLabel->setString("$" + std::to_string(money));
                         if ((int)sValidWord.length() > longestWord)
                             longestWord = (int)sValidWord.length();
                     }

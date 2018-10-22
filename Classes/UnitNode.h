@@ -12,10 +12,18 @@ public:
     int health() const { return iHealth; }
     void setHealth(int h){ iHealth = h; }
     bool justDied() const { return bJustDied; }
-    void setJustDied(bool b){ bJustDied = b; }
+    void setJustDied(bool jd){ bJustDied = jd; }
+    bool reachedGoal() { return bReachedGoal; }
+    void setReachedGoal()
+    { if (iHealth > 0)
+    	bReachedGoal = true; 
+    }
+    void unsetReachedGoal() { bReachedGoal = false; }
+
 	//void update(float delta) override;
 
 private:
+	bool bReachedGoal = false;
 	int iHealth = 1.0;
 	bool bJustDied = false;
 };

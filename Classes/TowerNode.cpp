@@ -78,6 +78,7 @@ void TowerNode::removeTarget(UnitNode* _target)
 		if (targets.size() == 0)
 		{
 			hasTarget = false;
+			setIdle();
 		}
 	}
 }
@@ -86,6 +87,21 @@ void TowerNode::clearTargets()
 {
 	hasTarget = false;
 	targets.clear();
+	setIdle();
+}
+
+void TowerNode::setIdle()
+{
+	std::stringstream ss;
+	ss << "Tower" << iLevel << "Idle.png";
+	setTexture(ss.str());
+}
+
+void TowerNode::setShooting()
+{
+	std::stringstream ss;
+	ss << "Tower" << iLevel << "Shooting.png";
+	setTexture(ss.str());
 }
 
 void TowerNode::update(float delta)
@@ -99,9 +115,7 @@ void TowerNode::update(float delta)
 			int health = targets[0]->health();
 			if (health > 0)
 			{
-				std::stringstream ss;
-				ss << "Tower" << iLevel << "Shooting.png";
-				setTexture(ss.str());
+				setShooting();
 				targets[0]->setHealth(health-iDamage);
 				std::cout << "Health down: " << health << "\n";
 				if (targets[0]->health() <= 0)
@@ -118,11 +132,9 @@ void TowerNode::update(float delta)
 			}
 			attackTimer = 1.0;
 		}
-		else if (attackTimer <= .8)
+		else if (attackTimer <= .9)
 		{
-			std::stringstream ss;
-			ss << "Tower" << iLevel << "Idle.png";
-			setTexture(ss.str());
+			setIdle();
 		}
 	}
 }

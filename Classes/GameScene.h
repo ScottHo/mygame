@@ -22,6 +22,11 @@ public:
     void cleanup();
     std::string getWord(){ return sValidWord; }
     bool isValidWord(){ return bIsValidWord; }
+    void loseLife()
+    {
+    	lifeLabel->setString(std::to_string(currentLife) + " Lives");
+    	currentLife--;
+    }
     CREATE_FUNC(Game);
     void update(float delta) override;
 private:
@@ -53,6 +58,8 @@ private:
 	Sprite* infoView;
 	Label* moneyLabel;
 	Label* timeLabel;
+	Label* lifeLabel;
+	Label* levelLabel;
 	Sprite* loadingZone;
 	ui::Widget* doneButton;
 
@@ -128,6 +135,7 @@ private:
 	float levelTime = 30.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8;
+	int currentLife = 5;
 };
 
 #endif // __GAME_SCENE_H__
