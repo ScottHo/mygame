@@ -12,15 +12,15 @@ public:
     static TowerNode* createTower(const std::string& filename);
     int damage() const { return iDamage; }
     void setDamage(int d){ iDamage = d; }
-    int enabled() const { return bEnabled; }
-    void setEnabled(int e){ bEnabled = e; }
     int attackSpeed() const { return iAttackSpeed; }
     void setAttackSpeed(int as) { iAttackSpeed = as; }
     int upgradeModifier() const { return iUpgradeModifer; }
     void setUpgradeModifier(int um){ iUpgradeModifer = um; }
     int level() const { return iLevel; }
     void setLevel(int l){ iLevel = l; }
-    
+
+    void applyLevel();
+
 	void addTarget(UnitNode* _target);
 	void removeTarget(UnitNode* _target);
 	void clearTargets();
@@ -35,7 +35,6 @@ private:
 	int iAttackSpeed = 1;
 	int iUpgradeModifer = 1;
 	int iLevel = 3;
-	bool bEnabled = false;
 };
 #endif // __TOWERNODE_H__
 

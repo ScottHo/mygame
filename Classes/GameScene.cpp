@@ -365,6 +365,7 @@ void Game::wordPhaseDone()
     towerCount++;
     TowerNode* newTower = createTower(towerCount, longestWord);
     towerManager->addChild(newTower);
+    currentTower = newTower;
     lettersFrame->setLocalZOrder(0);
     gameFrame->setLocalZOrder(1);
     globalFrame->setLocalZOrder(2);
@@ -376,6 +377,7 @@ void Game::wordPhaseDone()
     vWordsUsed.clear();
     currentWord = "---------";
     bIsValidWord = false;
+    bTowerUsed = false;
     clearTiles();
     currentPhase = stBuild;
     std::cout << "Word Phase Done\n";
@@ -384,6 +386,11 @@ void Game::wordPhaseDone()
 
 void Game::buildPhaseDone()
 {
+    if (!bTowerUsed)
+    {
+        currentTower->removeFromParentAndCleanup(true);
+        currentTower = nullptr;
+    }
     bTowerPickedUp = false;
     doneButton->setEnabled(false);
     unitsUnspawned = enemiesPerLevel;
@@ -432,8 +439,8 @@ TowerNode* Game::createTower(int tag, int level)
     std::stringstream ss;
     ss << "Tower" << level << "Idle.png";
     TowerNode* newTower = TowerNode::createTower(ss.str());
-    newTower->setDamage(level);
     newTower->setLevel(level);
+    newTower->applyLevel();
     newTower->setPosition(infoFrame->convertToWorldSpace(loadingZone->getPosition()));
     newTower->setAnchorPoint(Vec2(0,0));
     newTower->setTag(tag);
@@ -453,7 +460,7 @@ TowerNode* Game::createTower(int tag, int level)
 UnitNode* Game::createUnit(int tag, int level)
 {
     UnitNode* newUnit = UnitNode::createUnit("BaseUnit.png");
-    newUnit->setHealth(level);
+    newUnit->setHealth(level*2);
     newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
     newUnit->setAnchorPoint(Vec2(0,0));
     newUnit->setTag(tag);
@@ -876,7 +883,7 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                     auto action = MoveTo::create(0.2, newLocation);
                     currentTower->runAction(action);
                     std::cout << "tile moved to tile " << tileTouched << "\n";
-                    currentTower->setEnabled(true);
+                    bTowerUsed = true;
                 }
                 else
                 {

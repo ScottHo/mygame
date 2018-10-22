@@ -80,6 +80,7 @@ private:
 	int unitsUnspawned;
 	int unitsLeft;
 	int currentLevel = 0;
+	bool bTowerUsed;
 
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);

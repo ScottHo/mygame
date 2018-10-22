@@ -12,6 +12,52 @@ TowerNode* TowerNode::createTower(const std::string& filename)
    return nullptr;
 }
 
+void TowerNode::applyLevel()
+{
+	switch (iLevel)
+	{
+		case 3:
+			setDamage(1);
+			setAttackSpeed(1);
+			setUpgradeModifier(1);
+			break;
+		case 4:
+			setDamage(2);
+			setAttackSpeed(1);
+			setUpgradeModifier(1);
+			break;
+		case 5:
+			setDamage(3);
+			setAttackSpeed(1);
+			setUpgradeModifier(1);
+			break;
+		case 6:
+			setDamage(6);
+			setAttackSpeed(1);
+			setUpgradeModifier(2);
+			break;
+		case 7:
+			setDamage(7);
+			setAttackSpeed(1);
+			setUpgradeModifier(2);
+			break;
+		case 8:
+			setDamage(9);
+			setAttackSpeed(1);
+			setUpgradeModifier(3);
+			break;
+		case 9:
+			setDamage(12);
+			setAttackSpeed(1);
+			setUpgradeModifier(5);
+			break;
+		default:
+			break;
+
+	}
+
+}
+
 void TowerNode::addTarget(UnitNode* _target)
 {
 	hasTarget = true;
@@ -72,7 +118,7 @@ void TowerNode::update(float delta)
 			}
 			attackTimer = 1.0;
 		}
-		else if (attackTimer <= 4.0)
+		else if (attackTimer <= .8)
 		{
 			std::stringstream ss;
 			ss << "Tower" << iLevel << "Idle.png";
