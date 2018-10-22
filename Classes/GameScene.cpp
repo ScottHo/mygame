@@ -375,10 +375,13 @@ void Game::waitPhaseDone()
 void Game::wordPhaseDone()
 {
     doCountdown = false;
-    towerCount++;
-    TowerNode* newTower = createTower(towerCount, longestWord);
-    towerManager->addChild(newTower);
-    currentTower = newTower;
+    if (longestWord >= 3)
+    {
+        towerCount++;
+        TowerNode* newTower = createTower(towerCount, longestWord);
+        towerManager->addChild(newTower);
+        currentTower = newTower;
+    }
     lettersFrame->setLocalZOrder(0);
     gameFrame->setLocalZOrder(1);
     globalFrame->setLocalZOrder(2);
