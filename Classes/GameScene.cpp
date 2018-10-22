@@ -37,11 +37,26 @@ void Game::clearTiles()
 {
     bLetterPickedUp = false;
     currentLetter = nullptr;
+    for (auto holder : fieldManager->getChildren())
+    {
+        HolderNode* tmp = dynamic_cast<HolderNode*>(holder);
+        tmp->setValue(false);
+    }
+    for (auto holder : handManager->getChildren())
+    {
+        HolderNode* tmp = dynamic_cast<HolderNode*>(holder);
+        tmp->setValue(false);
+    }
     letterManager->removeAllChildrenWithCleanup(true);
 }
 
 void Game::clearUnits()
 {
+    for (auto tower : towerManager->getChildren())
+    {
+        TowerNode* tmp = dynamic_cast<TowerNode*>(tower);
+        tmp->clearTargets();
+    }
     unitManager->removeAllChildrenWithCleanup(true);
 }
 
@@ -358,6 +373,8 @@ void Game::wordPhaseDone()
     doneButton->setEnabled(true);
     longestWord = 0;
     sValidWord = "";
+    vWordsUsed.clear();
+    currentWord = "---------";
     bIsValidWord = false;
     clearTiles();
     currentPhase = stBuild;
@@ -462,7 +479,8 @@ void Game::dealTiles()
         filename += ".png";
         std::cout << filename << "\n";
         auto sprite = LetterNode::createLetter(filename);
-        auto holder = handManager->getChildByTag(i);
+        auto holder = dynamic_cast<HolderNode*>(handManager->getChildByTag(i));
+        holder->setValue(true);
         sprite->setValue(randomLetters.at(i));
         sprite->setPosition(holder->getPosition());
         sprite->setAnchorPoint(Vec2(0.5, 0.5));

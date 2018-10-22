@@ -20,29 +20,10 @@ public:
     void setUpgradeModifier(int um){ iUpgradeModifer = um; }
     int level() const { return iLevel; }
     void setLevel(int l){ iLevel = l; }
-	void addTarget(UnitNode* _target)
-	{
-		hasTarget = true;
-		targets.push_back(_target);
-	}
-
-	void removeTarget(UnitNode* _target)
-	{
-		std::vector<UnitNode*>::iterator indx = lower_bound(targets.begin(),targets.end(), _target);
-		int pos=indx-targets.begin();
-		if(indx == targets.end() || *indx!=_target)
-		{
-		 	std::cout<< "Unit " <<_target->getTag()<<" not found";
-		}
-		else
-		{
-			targets.erase(targets.begin()+pos);
-			if (targets.size() == 0)
-			{
-				hasTarget = false;
-			}
-		}
-	}
+    
+	void addTarget(UnitNode* _target);
+	void removeTarget(UnitNode* _target);
+	void clearTargets();
 
 	void update(float delta) override;
 

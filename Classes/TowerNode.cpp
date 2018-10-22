@@ -12,6 +12,36 @@ TowerNode* TowerNode::createTower(const std::string& filename)
    return nullptr;
 }
 
+void TowerNode::addTarget(UnitNode* _target)
+{
+	hasTarget = true;
+	targets.push_back(_target);
+}
+
+void TowerNode::removeTarget(UnitNode* _target)
+{
+	std::vector<UnitNode*>::iterator indx = lower_bound(targets.begin(),targets.end(), _target);
+	int pos=indx-targets.begin();
+	if(indx == targets.end() || *indx!=_target)
+	{
+	 	std::cout<< "Unit " <<_target->getTag()<<" not found";
+	}
+	else
+	{
+		targets.erase(targets.begin()+pos);
+		if (targets.size() == 0)
+		{
+			hasTarget = false;
+		}
+	}
+}
+
+void TowerNode::clearTargets()
+{
+	hasTarget = false;
+	targets.clear();
+}
+
 void TowerNode::update(float delta)
 {
 	if (hasTarget)
