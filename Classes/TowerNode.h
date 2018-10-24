@@ -35,6 +35,7 @@ private:
 	int iAttackSpeed = 1;
 	int iUpgradeModifer = 1;
 	int iLevel = 3;
+	float heartBeat = 2.0;
 
 	void setIdle();
 	void setShooting();

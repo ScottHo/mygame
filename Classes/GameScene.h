@@ -132,7 +132,7 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
-	float levelTime = 30.0;
+	float levelTime = 10.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8;
 	int currentLife = 5;

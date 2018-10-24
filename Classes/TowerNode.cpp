@@ -68,11 +68,8 @@ void TowerNode::removeTarget(UnitNode* _target)
 {
 	std::vector<UnitNode*>::iterator indx = lower_bound(targets.begin(),targets.end(), _target);
 	int pos=indx-targets.begin();
-	if(indx == targets.end() || *indx!=_target)
-	{
-	 	std::cout<< "Unit " <<_target->getTag()<<" not found";
-	}
-	else
+	// Attempt to remove the target (unless its dead)
+	if(!(indx == targets.end() || *indx!=_target))
 	{
 		targets.erase(targets.begin()+pos);
 		if (targets.size() == 0)
@@ -106,6 +103,16 @@ void TowerNode::setShooting()
 
 void TowerNode::update(float delta)
 {
+	heartBeat -= delta;
+	if (heartBeat <= 0)
+	{
+		heartBeat = 2.0;
+		if (hasTarget)
+			std::cout << "Tower " << getTag() << " has " << targets.size() << " targets\n";
+		else
+			std::cout << "Tower " << getTag() << " has no target\n";
+
+	}
 	if (hasTarget)
 	{
 		attackTimer -= delta;
@@ -115,6 +122,7 @@ void TowerNode::update(float delta)
 			int health = targets[0]->health();
 			if (health > 0)
 			{
+				std::cout << "Tower " << getTag() << " shot\n";
 				setShooting();
 				targets[0]->setHealth(health-iDamage);
 				std::cout << "Health down: " << health << "\n";
@@ -129,8 +137,17 @@ void TowerNode::update(float delta)
 					auto action = Blink::create(0.25, 2);
 					targets[0]->runAction(action);
 				}
+				attackTimer = 1.0;
 			}
-			attackTimer = 1.0;
+			else
+			{
+				if (targets[0])
+				{
+					targets[0]->setVisible(false);
+				}
+				targets.erase(targets.begin());
+				attackTimer = 0.5;
+			}
 		}
 		else if (attackTimer <= .9)
 		{
