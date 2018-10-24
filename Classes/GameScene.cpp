@@ -213,14 +213,14 @@ void Game::setupUi()
     SpriteFrame* loadingZoneFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, 100.0, 100.0));
     loadingZone = Sprite::create();
     loadingZone->setSpriteFrame(loadingZoneFrame);
-    loadingZone->setPosition(infoFrameWidth*1.0/4.0, infoFrameHeight*(3.0/7.0));
+    loadingZone->setPosition(infoFrameWidth*1.0/4.0, infoFrameHeight*(2.0/9.0));
     loadingZone->setAnchorPoint(Vec2(0.0,0.0));
     loadingZone->setName("loadingZone");
     loadingZone->setScale(scale);
     infoFrame->addChild(loadingZone, 0);
 
     doneButton = ui::Button::create("DoneButtonUnclicked.png", "DoneButtonClicked.png", "DoneButtonUnclicked.png");
-    doneButton->setPosition(Vec2(infoFrameWidth*2.0/4.0, infoFrameHeight*(1.0/7.0)));
+    doneButton->setPosition(Vec2(infoFrameWidth*2.0/4.0, infoFrameHeight*(1.0/9.0)));
     doneButton->setAnchorPoint(Vec2(0.5,0.5));
     doneButton->addTouchEventListener(CC_CALLBACK_2(Game::onDone, this));
     infoFrame->addChild(doneButton);
