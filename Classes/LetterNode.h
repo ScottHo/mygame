@@ -13,12 +13,20 @@ public:
     void setValue(char l){ cValue = l; }
     int points() const { return iPoints; }
     void setPoints(int p) { iPoints = p; }
+    bool inField(){ return bInField; }
+    void setInField(bool f) { bInField = f; }
+    int holderTag() { return iHolderTag; }
+    void setHolderTag(int ht) { iHolderTag = ht; }
 
-	//void update(float delta) override;
+    void scheduleAction(Action* action);
+	void update(float delta) override;
 
 private:
 	char cValue;
 	int iPoints = 1;
+	bool bInField = false;
+	int iHolderTag = -1;
+	std::queue<Action*> qActions;
 };
 #endif // __LETTERNODE_H__
 

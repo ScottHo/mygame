@@ -60,6 +60,7 @@ list(APPEND GAME_SOURCE
      Classes/HolderNode.cpp
      Classes/UnitNode.cpp
      Classes/TowerNode.cpp
+     Classes/WordUtils.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
@@ -68,6 +69,7 @@ list(APPEND GAME_HEADER
      Classes/HolderNode.h
      Classes/UnitNode.h
      Classes/TowerNode.h
+     Classes/WordUtils.h
      )
 
 if(ANDROID)

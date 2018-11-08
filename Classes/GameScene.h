@@ -4,6 +4,7 @@
 #include "UnitNode.h"
 #include "LetterNode.h"
 #include "HolderNode.h"
+#include "WordUtils.h"
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include <string>
@@ -46,6 +47,7 @@ private:
 
 	// lettersFrame
 	Sprite* lettersFrame;
+	Sprite* fieldBackground;
 	Sprite* letterManager;
 	Sprite* fieldManager;
 	Sprite* handManager;
@@ -65,16 +67,19 @@ private:
 
 	// helpers
 	LetterNode* currentLetter;
-	HolderNode* currentHolder;
+	HolderNode* leftHolder;
+	HolderNode* rightHolder;
 	TowerNode* currentTower;
 
 
 	// --- Private Variables ---
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
-	bool bLetterPickedUp;
+	bool bLetterPickedUp = false;
+	bool bDoShift = false;
+	bool bLetterMoved = false;
 	bool bTowerPickedUp;
-	std::string currentWord = "---------"; // lenght of 9
+	std::string currentWord = "---------------"; // lenght of 9
 	std::string sValidWord;
 	bool bIsValidWord;
 	std::vector<std::string> vWordsUsed;
@@ -88,13 +93,14 @@ private:
 	int unitsLeft;
 	int currentLevel = 0;
 	bool bTowerUsed;
+	int currentWordLength = 0;
 
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);
 	bool onTouchEnd(Touch* touch, Event* event);
 	bool onContactBegin(PhysicsContact& contact);
 	bool onContactSeparate(PhysicsContact& contact);
-	void updateCurrentWord(char letter, int index);
+	void updateCurrentWord();
 	void updateValidWord();
 	enum ePhases{stWait, stWord, stBuild, stKill};
 	ePhases currentPhase;
@@ -104,13 +110,31 @@ private:
 	int touchedTower(Vec2 location);
 	int touchedHandHolder(Vec2 location);
 	int touchedFieldHolder(Vec2 location);
-	std::string generateRandomLetters();
+	void placeLetter(LetterNode* letter);
+	void shiftOneLetter(LetterNode* letter, int direction);
+	void removeLetter();
+	void shiftLetters();
+	void reverseShiftLetters(Vec2 lastLocation);
+	void redoHolders();
+	void moveAllLetters();
 	void loadAllWords();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
 	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
-
+	HolderNode* getHolderNodeByTag(Node* parent, int tag)
+	{
+	    return dynamic_cast<HolderNode*>(parent->getChildByTag(tag));
+	}
+	HolderNode* getHolderNodeByLoc(Node* parent, Vec2 loc)
+	{
+		for (auto node : parent->getChildren())
+		{
+		    if (node->getBoundingBox().containsPoint(loc))
+		    	return dynamic_cast<HolderNode*>(node);
+		}
+	    return nullptr;
+	}
 	TowerNode* createTower(int tag, int level); 
 	UnitNode* createUnit(int tag, int health);
 	void wordPhaseDone();
@@ -123,6 +147,7 @@ private:
 	// Resources
 	std::string letterImage = "EmptyLetter.png";
 	std::string letterHolderImage = "LetterHolder.png";
+	std::string fieldHolderImage = "FieldHolder.png";
 
 	// Parameters
 	float spawnFrequencyTimer = 1.0;
@@ -132,10 +157,70 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
-	float levelTime = 10.0;
+	float levelTime = 3000.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8;
 	int currentLife = 5;
+
+	void debugMe()
+	{
+		int i = 5+5;
+		int j = 10+10;
+	}
+
+	void printDebug()
+	{
+		std::vector<int> tagsUsed;
+	    for (auto letter : letterManager->getChildren())
+	    {
+	        LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
+	        if (tmp->inField())
+	        {
+	        	std::cout << "Letter " << tmp->value() << " " << tmp->getTag() << " " << tmp->holderTag() << "\n";
+
+	            for (int tag : tagsUsed)
+	            {
+	            	if (tag == tmp->holderTag())
+	            	{
+	            		std::cout << "";
+
+	            		//debugMe();
+	            	}
+	            }
+	            tagsUsed.push_back(tmp->holderTag());
+
+	        }
+	    }
+	    bool last = false;
+	    bool printStack=false;
+	    for (auto holder : fieldManager->getChildren())
+	    {
+	        HolderNode* tmp = dynamic_cast<HolderNode*>(holder);
+	        if (tmp->value())
+	        {
+	        	LetterNode* _letter = dynamic_cast<LetterNode*>(letterManager->getChildByTag(tmp->letterTag()));
+	        	std::cout << _letter->value() << " " << tmp->letterTag() << " " << tmp->getTag() << "\n";
+	        	if (last)
+	        	{
+	        		std::cout << "\n-- Error --\n\n";
+	        	}
+	        	else
+	        	{
+	        		last = true;
+	        	}
+	        }
+	        else
+	        {
+	        	last = false;
+	        }
+	    }
+    	std::cout << "\n";
+    	//std::cout << "0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7\n";
+    	std::cout << "RightHolder = " << rightHolder->getTag() << "\n";
+    	std::cout << "LeftHolder = " << leftHolder->getTag() << "\n";
+    	std::cout << "************************\n";	
+	    
+	}
 };
 
 #endif // __GAME_SCENE_H__
