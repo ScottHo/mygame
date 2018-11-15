@@ -341,6 +341,11 @@ void Game::update(float delta)
                     wordPhaseDone();
                 }
             }
+            if (bScheduleMoveAllLetters)
+            {
+                moveAllLetters();
+                bScheduleMoveAllLetters = false;
+            }
         break;
         case stKill:        
             spawnFrequencyTimer -= delta;
@@ -380,13 +385,14 @@ void Game::update(float delta)
     }
 }
 
-
 void Game::waitPhaseDone()
 {
     startButton->setEnabled(false);
     submitButton->setEnabled(true);
     dealTiles();
+    resetField();
     doCountdown = true;
+    bScheduleMoveAllLetters = false;
     levelTimer = levelTime;
     currentPhase = stWord;
     std::cout << "Wait Phase Done\n";
@@ -411,10 +417,11 @@ void Game::wordPhaseDone()
     longestWord = 0;
     sValidWord = "";
     vWordsUsed.clear();
-    currentWord = "---------";
+    currentWord = "---------------";
     bIsValidWord = false;
     bTowerUsed = false;
     clearTiles();
+    resetField();
     currentPhase = stBuild;
     std::cout << "Word Phase Done\n";
 
@@ -742,19 +749,21 @@ bool Game::onTouchStart(Touch* touch, Event* event)
             if (!bLetterPickedUp)
             {
                 bLetterPickedUp = true;
-                bDoShift = false;
                 currentLetter = dynamic_cast<LetterNode*>(letterManager->getChildByTag(spriteTouched));
                 int fieldTouched = touchedFieldHolder(currentLocation);
                 int handTouched = touchedHandHolder(currentLocation);
                 if (fieldTouched > -1)
                 {
-                    originalLocation = fieldManager->getChildByTag(fieldTouched)->getPosition();
-                    currentLetter->setInField(false);
-                    getHolderNodeByTag(fieldManager, fieldTouched)->setValue(false);
+                    lastHolder = getHolderNodeByTag(fieldManager, fieldTouched);
+                    lastHolder->setValue(false);
+                    doRemove = true;
+                    
                 }
                 else if (handTouched > -1)
                 {
-                    originalLocation = handManager->getChildByTag(handTouched)->getPosition();
+                    lastHolder = getHolderNodeByTag(handManager, handTouched);
+                    lastHolder->setValue(false);
+                    doRemove = false;
                 }
                 else
                 {
@@ -789,32 +798,50 @@ bool Game::onTouchMove(Touch* touch, Event* event)
             Vec2 lastLetterLocation = currentLetter->getPosition();
             lastTouchLocation = touch->getLocation();
             currentLetter->setPosition(lastLetterLocation + touch->getDelta());
+
             Vec2 currentLetterLocation = currentLetter->getPosition();
-            if (not fieldBackground->getBoundingBox().containsPoint(currentLetterLocation))
+            if (touchedFieldHolder(currentLetterLocation) < 0)
             {
-                if (fieldBackground->getBoundingBox().containsPoint(lastLetterLocation))
+                if (touchedFieldHolder(lastLetterLocation) >= 0)
                 {
-                    reverseShiftLetters(currentLetter->getPosition());
-                    currentLetter->setInField(false);
+                    // Letter has exited the field
+                    lastHolder = getHolderNodeByLoc(fieldManager, lastLetterLocation);
+                    if (doRemove)
+                    {
+                        removeLetter(currentLetter);
+                    }
+                    else
+                    {
+                        unshiftLetters();
+                    }
+                    bScheduleMoveAllLetters = true;
+                    updateCurrentWord(); 
+                    updateValidWord();
                 }
-                bDoShift = false;
             }
             else
             {
-                if (not fieldBackground->getBoundingBox().containsPoint(lastLetterLocation))
+                if (touchedFieldHolder(lastLetterLocation) < 0)
                 {
-                    shiftLetters();
+                    // Letter has entered the field
+                    shiftLetters(currentLetter);
+                    bScheduleMoveAllLetters = true;
+                    updateCurrentWord(); 
+                    updateValidWord();
                 }
                 else
                 {
+                    // Letter is shifting in the field
                     int lastHolderM = touchedFieldHolder(lastLetterLocation);
                     int currentHolderM = touchedFieldHolder(currentLetterLocation);
-                    if (lastHolderM != -1 and currentHolderM != -1)
+                    if (lastHolderM != currentHolderM)
                     {
-                        shiftOneLetter(currentLetter,  lastHolderM - currentHolderM);
+                        unshiftLetters();
+                        shiftLetters(currentLetter);
+                        bScheduleMoveAllLetters = true;
+                        updateCurrentWord(); 
                     }
                 }
-                bDoShift = true;
             }
         }
     }
@@ -844,16 +871,12 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                 if (fieldTouched > -1)
                 {
                     placeLetter(currentLetter);
-
+                    bScheduleMoveAllLetters = true;
+                    updateCurrentWord(); 
+                    updateValidWord();
                 }
                 else if (handTouched > -1)
                 {
-                    if (bDoShift)
-                    {
-                        reverseShiftLetters(touch->getLocation());
-                        currentLetter->setInField(false);
-                    }
-
                     HolderNode* holder = getHolderNodeByTag(handManager, handTouched);
                     if (!holder->value())
                     {
@@ -863,21 +886,15 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                     }
                     else
                     {
-                        auto action = MoveTo::create(0.1, originalLocation);
+                        auto action = MoveTo::create(0.1, lastHolder->getPosition());
                         currentLetter->scheduleAction(action);
                     }
                 }
                 else
                 {
-                    if (bDoShift)
-                    {
-                        reverseShiftLetters(touch->getLocation());
-                        currentLetter->setInField(false);
-                    }
-                    auto action = MoveTo::create(0.1, originalLocation);
+                    auto action = MoveTo::create(0.1, lastHolder->getPosition());
                     currentLetter->scheduleAction(action);
                 }
-                updateValidWord();
                 bLetterMoved = false;
             }
             bLetterPickedUp = false;
@@ -923,272 +940,161 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
 
 void Game::placeLetter(LetterNode* letter)
 {
-    if (currentWordLength == 0)
+    HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
+    int currentTag = currentHolder->getTag();
+    if (currentWordLength < 9)
     {
-        HolderNode* middleHolder = getHolderNodeByTag(fieldManager, numLetters-1);
-        auto action = MoveTo::create(0.1, middleHolder->getPosition());
-        letter->scheduleAction(action);
-        leftHolder = middleHolder;
-        rightHolder = middleHolder;
-        letter->setHolderTag(middleHolder->getTag());
-        middleHolder->setValue(true);
-        middleHolder->setLetterTag(letter->getTag());
-        letter->setInField(true);
-    }
-    else
-    {
-        redoHolders();
-        letter->setInField(true);
-        if (letter->getPosition().x > rightHolder->getPosition().x)
+        bool rightmost = true;
+        bool leftmost = true;
+        for (int i=0; i < 17; i++)
         {
-            if (getHolderNodeByTag(fieldManager, rightHolder->getTag()-1)->value())
+            if (vFieldTracker[i] > -1)
             {
-                rightHolder = getHolderNodeByTag(fieldManager, rightHolder->getTag()+1);
+                if (i > currentTag)
+                {
+                    rightmost = false;
+                }
+                else if (i < currentTag)
+                {
+                    leftmost = false;
+                }
+                else
+                {
+                    std::cout << "*** Something went wrong with placeLetter ***\n";
+                }
             }
-            auto action = MoveTo::create(0.1, rightHolder->getPosition());
-            letter->scheduleAction(action);
-            letter->setHolderTag(rightHolder->getTag());
-            rightHolder->setValue(true);
-            rightHolder->setLetterTag(letter->getTag());
         }
-        else if (letter->getPosition().x < leftHolder->getPosition().x) 
+        if (leftmost and rightmost)
         {
-            if (getHolderNodeByTag(fieldManager, leftHolder->getTag()+1)->value())
-            {
-                leftHolder = getHolderNodeByTag(fieldManager, leftHolder->getTag()-1);
-            }
-            auto action = MoveTo::create(0.1, leftHolder->getPosition());
-            letter->scheduleAction(action);
-            letter->setHolderTag(leftHolder->getTag());
-            leftHolder->setValue(true);
-            leftHolder->setLetterTag(letter->getTag());
-        }   
+            vFieldTracker[numLetters-1] = letter->getTag();
+            std::cout << "middle : " << numLetters-1 << "\n";
+        }
+        else if (leftmost)
+        {
+            vFieldTracker[numLetters-1-currentWordLength] = letter->getTag();
+            std::cout << "Left : " << numLetters-1-currentWordLength << "\n";
+
+        }
+        else if (rightmost)
+        {
+            vFieldTracker[numLetters-1+currentWordLength] = letter->getTag();
+            std::cout << "Right : " << numLetters-1+currentWordLength << "\n";
+
+        }
         else
         {
-            HolderNode* holder = getHolderNodeByTag(fieldManager, touchedFieldHolder(letter->getPosition()));
-            HolderNode* closeLeftHolder = getHolderNodeByTag(fieldManager, touchedFieldHolder(letter->getPosition())-1);
-            HolderNode* closeRightHolder = getHolderNodeByTag(fieldManager, touchedFieldHolder(letter->getPosition())+1);
-            if (closeRightHolder->value())
-                holder = closeLeftHolder;
-            else if (closeLeftHolder->value())
-                holder = closeRightHolder;
-            auto action = MoveTo::create(0.1, holder->getPosition());
-            letter->scheduleAction(action);
-            letter->setHolderTag(holder->getTag());
-            holder->setValue(true);
-            holder->setLetterTag(letter->getTag());
+            vFieldTracker[currentTag] = letter->getTag();
+            std::cout << "None : " << currentTag << "\n";
+
         }
-        redoHolders();
-    }
-    std::cout << "placeLetter \n";
-    updateCurrentWord();    
-    printDebug();
-    moveAllLetters();
+        letter->setInField(true);
+    } 
+}
+
+void Game::shiftLetters(LetterNode* letter)
+{
+    HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
+    int currentTag = currentHolder->getTag();
+    std::vector<int> vBackup(17, -1);
+    bool switched = false;
+    if (currentWordLength < 9)
+    {
+        for (int i=0; i < 17; i++)
+        {
+            if (vFieldTracker[i] > -1)
+            {
+                if (i > currentTag)
+                {
+                    if (!switched)
+                    {
+                        vBackup[i-1] = -2;
+                        switched = true;
+                    }
+                    vBackup[i+1] = vFieldTracker[i];
+                }
+                else if (i <= currentTag)
+                {
+                    vBackup[i-1] = vFieldTracker[i];
+                }
+            }
+        }
+        vFieldTracker = vBackup;
+    }  
+}
+
+void Game::unshiftLetters()
+{
+    std::vector<int> vBackup(17, -1);
+    bool emptyFound = false;
+    if (currentWordLength < 9 and currentWordLength >= 1)
+    {
+        for (int i=0; i < 17; i++)
+        {
+            if (vFieldTracker[i] > -1)
+            {
+                if (emptyFound)
+                {
+                    vBackup[i-1] = vFieldTracker[i];
+                }
+                else
+                {
+                    vBackup[i+1] = vFieldTracker[i];
+                }
+            }
+            else if (vFieldTracker[i] == -2)
+            {
+                emptyFound = true;
+            }
+        }
+        vFieldTracker = vBackup;
+    }  
 }
 
 void Game::moveAllLetters()
 {
-    for (auto letter : letterManager->getChildren())
+    printFieldVec();
+    for (int count = 0; count < (int)vFieldTracker.size(); count++)
     {
-        LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
-        if (tmp->inField())
+        int num = vFieldTracker[count];
+        if (num > 0)
         {
-            HolderNode* tmpHolder = getHolderNodeByTag(fieldManager, tmp->holderTag());
-            auto action = MoveTo::create(0.1, tmpHolder->getPosition());
-            tmp->scheduleAction(action);
+            auto letter = getLetterNodeByTag(letterManager, num);
+            auto holder = fieldManager->getChildByTag(count);
+            auto action = MoveTo::create(0.1, holder->getPosition());
+            letter->scheduleAction(action);
+            letter->setHolderTag(count);
         }
     }
 }
 
-void Game::shiftOneLetter(LetterNode* letter, int direction)
+void Game::removeLetter(LetterNode* letter)
 {
-    if (not currentWordLength == 0)
-    {
-        if (getHolderNodeByTag(fieldManager, touchedFieldHolder(letter->getPosition()))->value())
-        {
-            for (auto letter : letterManager->getChildren())
-            {
-                LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
-                if (tmp->inField())
-                {
-                    HolderNode* tmpHolder = getHolderNodeByTag(fieldManager, tmp->holderTag());
-                    redoHolders();
-                    if (direction < 0 and tmpHolder->getTag() != leftHolder->getTag())
-                    {
-                        HolderNode* tmpRightHolder = getHolderNodeByTag(fieldManager, tmp->holderTag()-2);
-                        if (not tmpRightHolder->value())
-                        {
-                            tmpHolder->setValue(false);
-                            auto action = MoveTo::create(0.1, tmpRightHolder->getPosition());
-                            tmp->scheduleAction(action);
-                            tmp->setHolderTag(tmpRightHolder->getTag());
-                            tmpRightHolder->setValue(true);
-                            tmpRightHolder->setLetterTag(tmp->getTag());
-                            rightHolder = tmpRightHolder;
-                            break;
-                        }
-                    }
-                    if (direction > 0 and tmpHolder->getTag() != rightHolder->getTag())
-                    {
-                        HolderNode* tmpLeftHolder = getHolderNodeByTag(fieldManager, tmp->holderTag()+2);
-                        if (not tmpLeftHolder->value())
-                        {
-                            tmpHolder->setValue(false);
-                            auto action = MoveTo::create(0.1, tmpLeftHolder->getPosition());
-                            tmp->scheduleAction(action);
-                            tmp->setHolderTag(tmpLeftHolder->getTag());
-                            tmpLeftHolder->setValue(true);
-                            tmpLeftHolder->setLetterTag(tmp->getTag());
-                            leftHolder = tmpLeftHolder;
-                            break;
-                        }
-                    }   
-                }
-            }
-            redoHolders();
-            std::cout << "shift One\n";
-            updateCurrentWord();
-            printDebug();    
-        }
-    }
-}
-
-void Game::redoHolders()
-{
-    /*for (auto holder : fieldManager->getChildren())
-    {
-        HolderNode* tmp = dynamic_cast<HolderNode*>(holder);
-        for (auto letter : letterManager->getChildren())
-        {
-            LetterNode* tmpLetter = dynamic_cast<LetterNode*>(letter);
-            if (tmpLetter->inField())
-            {
-                if (tmp->value())
-                {
-                    if (tmp->getTag() == tmpLetter->holderTag())
-                        tmp->setValue(true);
-                }
-                else
-                {
-                    if (tmp->getTag() == tmpLetter->holderTag())
-                        tmp->setValue(false);
-                }
-
-            }
-        }
-    }*/
-
-    for (auto holder : fieldManager->getChildren())
-    {
-        HolderNode* tmp = dynamic_cast<HolderNode*>(holder);
-        if (tmp->value())
-        {
-            if (tmp->getPosition().x < leftHolder->getPosition().x)
-                leftHolder = tmp;
-            if (tmp->getPosition().x > rightHolder->getPosition().x)
-                rightHolder = tmp;
-        }
-    }
-}
-
-void Game::shiftLetters()
-{
-    if ((currentWordLength == 0) or (currentWordLength >= 9))
-    {
-    }
-    else
-    {
-        for (auto letter : letterManager->getChildren())
-        {
-            LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
-            if (tmp->inField())
-            {
-                if (tmp->getPosition().x < currentLetter->getPosition().x)
-                {
-                    HolderNode* tmpHolder = getHolderNodeByTag(fieldManager, tmp->holderTag());
-                    if (tmpHolder->getTag() > 0)
-                    {
-                        tmpHolder->setValue(false);
-                        HolderNode* newTmpHolder = getHolderNodeByTag(fieldManager, tmp->holderTag()-1);
-                        auto action = MoveTo::create(0.1, newTmpHolder->getPosition());
-                        tmp->scheduleAction(action);
-                        tmp->setHolderTag(newTmpHolder->getTag());
-                        newTmpHolder->setValue(true);
-                        newTmpHolder->setLetterTag(tmp->getTag());
-                    }
-                    else
-                    {
-                        std::cout << "Letter Tried to go off board left\n";
-                    }
-                }
-                else
-                {
-                    HolderNode* tmpHolder = getHolderNodeByTag(fieldManager, tmp->holderTag());
-                    if (tmpHolder->getTag() < (numLetters*2) - 2)
-                    {
-                        tmpHolder->setValue(false);
-                        HolderNode* newTmpHolder = getHolderNodeByTag(fieldManager, tmp->holderTag()+1);
-                        auto action = MoveTo::create(0.1, newTmpHolder->getPosition());
-                        tmp->scheduleAction(action);
-                        tmp->setHolderTag(newTmpHolder->getTag());
-                        newTmpHolder->setValue(true);
-                        newTmpHolder->setLetterTag(tmp->getTag());
-                    }
-                    else
-                    {
-                        std::cout << "Letter Tried to go off board right\n";
-                    }
-                }
-            }
-        }
-        redoHolders();
-        std::cout << "shift all\n";
-        updateCurrentWord();
-        printDebug();
-    }
-}
-
-void Game::reverseShiftLetters(Vec2 lastLocation)
-{
+    int letterTag = letter->getTag();
+    std::vector<int> vBackup(17, -1);
     if (currentWordLength > 0)
     {
-        for (auto letter : letterManager->getChildren())
+        bool found = false;
+        for (int i=0; i < 17; i++)
         {
-            LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
-            if (tmp->inField())
+            if (vFieldTracker[i] > -1)
             {
-                if (tmp->getPosition().x < lastLocation.x)
+                if (vFieldTracker[i] == letterTag)
                 {
-                    auto tmpHolder = getHolderNodeByTag(fieldManager,touchedFieldHolder(tmp->getPosition())+1);
-                    auto oldTmpHolder = getHolderNodeByTag(fieldManager,touchedFieldHolder(tmp->getPosition()));
-                    auto action = MoveTo::create(0.1, tmpHolder->getPosition());
-                    tmp->scheduleAction(action);
-                    tmp->setHolderTag(tmpHolder->getTag());
-                    oldTmpHolder->setValue(false);
-                    tmpHolder->setValue(true);
-                    tmpHolder->setLetterTag(tmp->getTag());
+                    found = true;
                 }
                 else
                 {
-                    auto tmpHolder = getHolderNodeByTag(fieldManager,touchedFieldHolder(tmp->getPosition())-1);
-                    auto oldTmpHolder = getHolderNodeByTag(fieldManager,touchedFieldHolder(tmp->getPosition()));
-                    auto action = MoveTo::create(0.1, tmpHolder->getPosition());
-                    leftHolder->setValue(false);
-                    tmp->scheduleAction(action);
-                    tmp->setHolderTag(tmpHolder->getTag());
-                    oldTmpHolder->setValue(false);
-                    tmpHolder->setValue(true);
-                    tmpHolder->setLetterTag(tmp->getTag());
-                }   
+                    if (found)
+                        vBackup[i-1] = vFieldTracker[i];
+                    else
+                        vBackup[i+1] = vFieldTracker[i];
+                }
             }
         }
-        redoHolders();
-        std::cout << "reverse shift\n";
-        updateCurrentWord();
-        printDebug();
-    }
+        letter->setInField(false);
+        vFieldTracker = vBackup;
+    }   
 }
-
 
 int Game::touchedFieldHolder(Vec2 location)
 {

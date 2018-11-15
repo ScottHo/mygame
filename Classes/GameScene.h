@@ -69,6 +69,7 @@ private:
 	LetterNode* currentLetter;
 	HolderNode* leftHolder;
 	HolderNode* rightHolder;
+	HolderNode* lastHolder;
 	TowerNode* currentTower;
 
 
@@ -76,7 +77,6 @@ private:
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
 	bool bLetterPickedUp = false;
-	bool bDoShift = false;
 	bool bLetterMoved = false;
 	bool bTowerPickedUp;
 	std::string currentWord = "---------------"; // lenght of 9
@@ -94,6 +94,17 @@ private:
 	int currentLevel = 0;
 	bool bTowerUsed;
 	int currentWordLength = 0;
+	bool doRemove;
+	bool bScheduleMoveAllLetters;
+	std::vector<int> vFieldTracker;
+	void resetField()
+	{
+		vFieldTracker.clear();
+		for (int i=0; i < 17; i++)
+		{
+			vFieldTracker.push_back(-1);
+		}
+	}
 
 	bool onTouchStart(Touch* touch, Event* event);
 	bool onTouchMove(Touch* touch, Event* event);
@@ -111,17 +122,19 @@ private:
 	int touchedHandHolder(Vec2 location);
 	int touchedFieldHolder(Vec2 location);
 	void placeLetter(LetterNode* letter);
-	void shiftOneLetter(LetterNode* letter, int direction);
-	void removeLetter();
-	void shiftLetters();
-	void reverseShiftLetters(Vec2 lastLocation);
-	void redoHolders();
+	void removeLetter(LetterNode* letter);
+	void shiftLetters(LetterNode* letter);
+	void unshiftLetters();
 	void moveAllLetters();
 	void loadAllWords();
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
 	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
+	LetterNode* getLetterNodeByTag(Node* parent, int tag)
+	{
+	    return dynamic_cast<LetterNode*>(parent->getChildByTag(tag));
+	}
 	HolderNode* getHolderNodeByTag(Node* parent, int tag)
 	{
 	    return dynamic_cast<HolderNode*>(parent->getChildByTag(tag));
@@ -159,13 +172,15 @@ private:
 	float gameColumns = 10.0;
 	float levelTime = 3000.0;
 	int numCorners = 10;
-	int enemiesPerLevel = 8;
+	int enemiesPerLevel = 8; 
 	int currentLife = 5;
 
-	void debugMe()
+	void printFieldVec()
 	{
-		int i = 5+5;
-		int j = 10+10;
+		std::cout << "vFieldTracker: ";
+		for (auto tag : vFieldTracker)
+			std::cout << " " << tag;
+		std::cout << "\n";
 	}
 
 	void printDebug()
@@ -192,7 +207,6 @@ private:
 	        }
 	    }
 	    bool last = false;
-	    bool printStack=false;
 	    for (auto holder : fieldManager->getChildren())
 	    {
 	        HolderNode* tmp = dynamic_cast<HolderNode*>(holder);
