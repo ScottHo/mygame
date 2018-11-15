@@ -30,7 +30,7 @@ namespace WordUtils
 	    int numVowels = dist(engine);
 	    int numConsonants = numLetters - numVowels;
 
-	    std::string consonant = "BBBBBCCCCCCCCCDDDDDDDDDFFFGGGGGGGHHHHHJJLLLLLLLLLLLMMMMMMNNNNNNNNNNNNNNPPPPPPQRRRRRRRRRRRRRRSSSSSSSSSSSSSSSSSTTTTTTTTTTTTTTTTVVVXXZZ";
+	    std::string consonant = "BBCCDDDDFFGGGHHJKLLLLMMNNNNNNPPQRRRRRRSSSSTTTTTTVVWWXYYZ";
 	    std::string vowels = "AAAAAEEEEEEIIIIIOOOOUU";
 	    std::string ret;
 

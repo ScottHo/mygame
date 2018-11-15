@@ -500,6 +500,7 @@ TowerNode* Game::createTower(int tag, int level)
     newTower->setTag(tag);
     newTower->setScale(scale);
     newTower->setName("Tower");
+    currentTower = newTower;
     auto range = PhysicsBody::createCircle(200.0);
     range->setContactTestBitmask(0x01);
     range->setCategoryBitmask(0x01);
