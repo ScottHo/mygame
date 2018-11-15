@@ -5,6 +5,7 @@
 #include "LetterNode.h"
 #include "HolderNode.h"
 #include "WordUtils.h"
+#include "TowerMenu.h"
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include <string>
@@ -44,7 +45,7 @@ private:
 	Sprite* gameFrame;
 	Sprite* gridManager;
 	Sprite* unitManager;
-
+	TowerMenu* towerMenu;
 	// lettersFrame
 	Sprite* lettersFrame;
 	Sprite* fieldBackground;
@@ -84,7 +85,6 @@ private:
 	bool bIsValidWord;
 	std::vector<std::string> vWordsUsed;
 	int longestWord;
-	int money;
 	bool doCountdown = false;
 	float levelTimer = 1.0;
 	int towerCount = 0;
@@ -131,6 +131,15 @@ private:
 	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
+	TowerNode* getTowerNodeByLoc(Node* parent, Vec2 loc)
+	{
+		for (auto node : parent->getChildren())
+		{
+		    if (node->getBoundingBox().containsPoint(loc))
+		    	return dynamic_cast<TowerNode*>(node);
+		}
+	    return nullptr;
+	}
 	LetterNode* getLetterNodeByTag(Node* parent, int tag)
 	{
 	    return dynamic_cast<LetterNode*>(parent->getChildByTag(tag));
@@ -170,7 +179,7 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
-	float levelTime = 3000.0;
+	float levelTime = 20.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8; 
 	int currentLife = 5;

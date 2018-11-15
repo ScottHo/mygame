@@ -61,6 +61,7 @@ list(APPEND GAME_SOURCE
      Classes/UnitNode.cpp
      Classes/TowerNode.cpp
      Classes/WordUtils.cpp
+     Classes/TowerMenu.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
@@ -70,6 +71,7 @@ list(APPEND GAME_HEADER
      Classes/UnitNode.h
      Classes/TowerNode.h
      Classes/WordUtils.h
+     Classes/TowerMenu.h
      )
 
 if(ANDROID)

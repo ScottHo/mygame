@@ -101,6 +101,11 @@ void TowerNode::setShooting()
 	setTexture(ss.str());
 }
 
+void TowerNode::upgrade()
+{
+	iDamage += iUpgradeModifer;
+}
+
 void TowerNode::update(float delta)
 {
 	heartBeat -= delta;

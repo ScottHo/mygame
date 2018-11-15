@@ -18,12 +18,16 @@ public:
     void setUpgradeModifier(int um){ iUpgradeModifer = um; }
     int level() const { return iLevel; }
     void setLevel(int l){ iLevel = l; }
+    int active() const { return bActive; }
+    void setActive(bool a){ bActive = a; }
+    void upgrade();
 
     void applyLevel();
 
 	void addTarget(UnitNode* _target);
 	void removeTarget(UnitNode* _target);
 	void clearTargets();
+
 
 	void update(float delta) override;
 
@@ -35,6 +39,7 @@ private:
 	int iAttackSpeed = 1;
 	int iUpgradeModifer = 1;
 	int iLevel = 3;
+	int bActive = false;
 	float heartBeat = 2.0;
 
 	void setIdle();

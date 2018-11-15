@@ -14,7 +14,6 @@ Scene* Game::createScene()
     auto scene = Scene::createWithPhysics();
     auto layer = Game::create();
     scene->addChild(layer);
-    
     return scene;
 }
 
@@ -63,6 +62,7 @@ void Game::clearTowers()
 {
     bTowerPickedUp = false;
     currentTower = nullptr;
+    towerMenu->clearTower();
     towerManager->removeAllChildrenWithCleanup(true);
 }
 
@@ -144,7 +144,12 @@ void Game::setupUi()
     towerManager->setSpriteFrame(emptyWindowFrame);
     towerManager->setPosition(0, 0);
     towerManager->setAnchorPoint(Vec2(0.0, 0.0));
-    globalFrame->addChild(towerManager, 0);
+    globalFrame->addChild(towerManager, 1);
+
+    towerMenu = TowerMenu::createMenu();
+    towerMenu->addButtons();
+    towerMenu->setAnchorPoint(Vec2(0,0));
+    this->addChild(towerMenu, -1);
 
     gridManager = Sprite::create();
     gridManager->setSpriteFrame(gameSpriteFrame);
@@ -224,7 +229,7 @@ void Game::setupUi()
     infoFrame->addChild(doneButton);
 
     moneyLabel = Label::createWithSystemFont("$0", "Arial", 16);
-    moneyLabel->setString("$" + std::to_string(money));
+    moneyLabel->setString("$" + std::to_string(towerMenu->money()));
     moneyLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*(5.0/9.0)));
     moneyLabel->setAnchorPoint(Vec2(0.5, 0.5));
     infoFrame->addChild(moneyLabel);
@@ -327,6 +332,8 @@ void Game::setupUi()
 
 void Game::update(float delta)
 {
+    if (towerMenu)
+        moneyLabel->setString("$" + std::to_string(towerMenu->money()));
     switch (currentPhase)
     {
         case stWord:
@@ -432,8 +439,10 @@ void Game::buildPhaseDone()
     if (!bTowerUsed)
     {
         currentTower->removeFromParentAndCleanup(true);
-        currentTower = nullptr;
     }
+    currentTower = nullptr;
+    towerMenu->setLocalZOrder(-1);
+    towerMenu->clearTower();
     bTowerPickedUp = false;
     doneButton->setEnabled(false);
     unitsUnspawned = enemiesPerLevel;
@@ -546,13 +555,13 @@ void Game::dealTiles()
 void Game::updateCurrentWord()
 {
 
-    currentWord = "------------------";
-    for (auto letter : letterManager->getChildren())
+    currentWord = "";
+    for (auto letterTag : vFieldTracker)
     {
-        LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
-        if (tmp->inField())
+        if (letterTag > -1)
         {
-            currentWord[tmp->holderTag()] = tmp->value();
+            auto letterNode = getLetterNodeByTag(letterManager, letterTag);
+            currentWord += letterNode->value();
         }
     }
     std::cout << currentWord << "\n";
@@ -560,18 +569,10 @@ void Game::updateCurrentWord()
 
 void Game::updateValidWord()
 {
-    std::string formattedWord;
-    for (char letter : currentWord)
+    if (currentWord.length() > 2 and 
+        std::find(vWords.begin(), vWords.end(), currentWord) != vWords.end())
     {
-        if (letter != '-')
-        {
-            formattedWord += letter;
-        }
-    }
-    if (formattedWord.length() > 2 and 
-        std::find(vWords.begin(), vWords.end(), formattedWord) != vWords.end())
-    {
-        sValidWord = formattedWord;
+        sValidWord = currentWord;
         bIsValidWord = true;
         std::cout << sValidWord << "\n";
     }
@@ -580,7 +581,7 @@ void Game::updateValidWord()
         sValidWord = "";
         bIsValidWord = false;
     }
-    currentWordLength = formattedWord.length();
+    currentWordLength = currentWord.length();
     std::cout << "currentWordLength" << currentWordLength << "\n";
 }
 
@@ -651,8 +652,6 @@ bool Game::onContactBegin(PhysicsContact& contact)
             }
         }
     }
-    
-    //bodies can collide
     return true;
 }
 
@@ -689,8 +688,6 @@ bool Game::onContactSeparate(PhysicsContact& contact)
             }
         }
     }
-
-    //bodies can collide
     return true;
 }
 
@@ -705,8 +702,7 @@ void Game::onSubmit(Ref* sender, ui::Widget::TouchEventType type)
                 if (std::find(vWordsUsed.begin(), vWordsUsed.end(), sValidWord) == vWordsUsed.end())
                 {
                     vWordsUsed.push_back(sValidWord);
-                    money = WordUtils::calculateMoney(money, sValidWord.length());
-                    moneyLabel->setString("$" + std::to_string(money));
+                    towerMenu->setMoney(WordUtils::calculateMoney(towerMenu->money(), sValidWord.length()));
                     if ((int)sValidWord.length() > longestWord)
                         longestWord = (int)sValidWord.length();
                 }
@@ -778,11 +774,19 @@ bool Game::onTouchStart(Touch* touch, Event* event)
         int towerTouched = touchedTower(currentLocation);
         if (towerTouched > -1)
         {
-            bTowerPickedUp = true;
+
             currentTower = dynamic_cast<TowerNode*>(towerManager->getChildByTag(towerTouched));
-            originalLocation = currentTower->getPosition();
-            std::cout << "Tower Touched\n";
-            lastTouchLocation = currentLocation;
+            if (not currentTower->active())
+            {
+                bTowerPickedUp = true;
+                originalLocation = currentTower->getPosition();
+                std::cout << "Tower Touched\n";
+                lastTouchLocation = currentLocation;
+            }
+            else
+            {
+                std::cout << "Tower Touched\n";
+            }
         }
     }
     return true;
@@ -907,7 +911,6 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
             std::cout << lastTouchLocation.x << " " << lastTouchLocation.y << "\n";
             int tileTouched = touchedTile(lastTouchLocation);
             std::cout << "tile " << tileTouched << "\n";
-
             if (tileTouched > -1)
             {
                 auto tile = gridManager->getChildByTag(tileTouched);
@@ -916,6 +919,7 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                     Vec2 newLocation = gridManager->convertToWorldSpace(tile->getPosition());
                     auto action = MoveTo::create(0.1, newLocation);
                     currentTower->runAction(action);
+                    currentTower->setActive(true);
                     std::cout << "tile moved to tile " << tileTouched << "\n";
                     bTowerUsed = true;
                 }
@@ -932,7 +936,17 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
 
             }
             bTowerPickedUp = false;
-
+        }
+        else
+        {
+            TowerNode* touchedTower = getTowerNodeByLoc(towerManager, touch->getLocation());
+            if (currentTower == touchedTower)
+            {
+                std::cout << "Opened Menu\n";
+                towerMenu->setTower(touchedTower);
+                towerMenu->setPosition(touch->getLocation());
+                towerMenu->setLocalZOrder(5);
+            }
         }
     }
     return true;
