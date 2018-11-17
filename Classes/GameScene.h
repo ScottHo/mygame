@@ -80,7 +80,7 @@ private:
 	bool bLetterPickedUp = false;
 	bool bLetterMoved = false;
 	bool bTowerPickedUp;
-	std::string currentWord = "---------------"; // lenght of 9
+	std::string currentWord = ""; // lenght of 9
 	std::string sValidWord;
 	bool bIsValidWord;
 	std::vector<std::string> vWordsUsed;
@@ -96,6 +96,10 @@ private:
 	int currentWordLength = 0;
 	bool doRemove;
 	bool bScheduleMoveAllLetters;
+	bool doMove = false;
+	float doMoveTimer = 0.5;
+	bool lastInField = false;
+	
 	std::vector<int> vFieldTracker;
 	void resetField()
 	{
@@ -179,7 +183,7 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
-	float levelTime = 20.0;
+	float levelTime = 200.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8; 
 	int currentLife = 5;
@@ -190,6 +194,13 @@ private:
 		for (auto tag : vFieldTracker)
 			std::cout << " " << tag;
 		std::cout << "\n";
+		/*std::cout << "LetterInfo: ";
+		for (auto letter : letterManager->getChildren())
+		{
+			LetterNode* tmp = dynamic_cast<LetterNode*>(letter);
+			std::cout << tmp->value() << "-" << tmp->inField() << " ";
+		}
+		std::cout << "\n";*/
 	}
 
 	void printDebug()

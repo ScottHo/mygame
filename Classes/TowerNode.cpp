@@ -112,10 +112,10 @@ void TowerNode::update(float delta)
 	if (heartBeat <= 0)
 	{
 		heartBeat = 2.0;
-		if (hasTarget)
+		/*if (hasTarget)
 			std::cout << "Tower " << getTag() << " has " << targets.size() << " targets\n";
 		else
-			std::cout << "Tower " << getTag() << " has no target\n";
+			std::cout << "Tower " << getTag() << " has no target\n";*/
 
 	}
 	if (hasTarget)
@@ -127,10 +127,10 @@ void TowerNode::update(float delta)
 			int health = targets[0]->health();
 			if (health > 0)
 			{
-				std::cout << "Tower " << getTag() << " shot\n";
+				//std::cout << "Tower " << getTag() << " shot\n";
 				setShooting();
 				targets[0]->setHealth(health-iDamage);
-				std::cout << "Health down: " << health << "\n";
+				//std::cout << "Health down: " << health << "\n";
 				if (targets[0]->health() <= 0)
 				{
                 	targets[0]->setVisible(false);

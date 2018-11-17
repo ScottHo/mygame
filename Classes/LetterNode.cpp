@@ -14,23 +14,22 @@ LetterNode* LetterNode::createLetter(const std::string& filename)
 
 void LetterNode::scheduleAction(Action* action)
 {
-	if (getNumberOfRunningActions() == 0)
-	{
+	//if (getNumberOfRunningActions() == 0)
+	//{
 		runAction(action);
-	}
-	else
-	{
-		qActions.push(action);
-	}
-
+	//}
+	//else
+	//{
+	//	qActions.push(action);
+	//}
 }
 
 void LetterNode::update(float dt)
 {
-	if (getNumberOfRunningActions() == 0 and qActions.size() > 0)
+	/*if (getNumberOfRunningActions() == 0 and qActions.size() > 0)
 	{
 		Action* action = qActions.front();
 		runAction(action);
 		qActions.pop();
-	}
+	}*/
 }

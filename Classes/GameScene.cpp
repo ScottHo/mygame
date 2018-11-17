@@ -350,8 +350,17 @@ void Game::update(float delta)
             }
             if (bScheduleMoveAllLetters)
             {
-                moveAllLetters();
+                doMoveTimer = 0.05;
                 bScheduleMoveAllLetters = false;
+            }
+            else
+            {
+                doMoveTimer -= delta;
+                if (doMoveTimer <= 0.01)
+                {
+                    moveAllLetters();
+                    doMoveTimer = 0.5;
+                }
             }
         break;
         case stKill:        
@@ -418,13 +427,14 @@ void Game::wordPhaseDone()
     lettersFrame->setLocalZOrder(0);
     gameFrame->setLocalZOrder(1);
     globalFrame->setLocalZOrder(2);
-
+    lastHolder = nullptr;
+    currentLetter = nullptr;
     submitButton->setEnabled(false);
     doneButton->setEnabled(true);
     longestWord = 0;
     sValidWord = "";
     vWordsUsed.clear();
-    currentWord = "---------------";
+    currentWord = "";
     bIsValidWord = false;
     bTowerUsed = false;
     clearTiles();
@@ -438,7 +448,8 @@ void Game::buildPhaseDone()
 {
     if (!bTowerUsed)
     {
-        currentTower->removeFromParentAndCleanup(true);
+        if (currentTower)
+            currentTower->removeFromParentAndCleanup(true);
     }
     currentTower = nullptr;
     towerMenu->setLocalZOrder(-1);
@@ -555,7 +566,6 @@ void Game::dealTiles()
 
 void Game::updateCurrentWord()
 {
-
     currentWord = "";
     for (auto letterTag : vFieldTracker)
     {
@@ -566,6 +576,7 @@ void Game::updateCurrentWord()
         }
     }
     std::cout << currentWord << "\n";
+    currentWordLength = currentWord.length();
 }
 
 void Game::updateValidWord()
@@ -747,20 +758,20 @@ bool Game::onTouchStart(Touch* touch, Event* event)
             {
                 bLetterPickedUp = true;
                 currentLetter = dynamic_cast<LetterNode*>(letterManager->getChildByTag(spriteTouched));
+                currentLetter->setInField(false);
                 int fieldTouched = touchedFieldHolder(currentLocation);
                 int handTouched = touchedHandHolder(currentLocation);
                 if (fieldTouched > -1)
                 {
-                    lastHolder = getHolderNodeByTag(fieldManager, fieldTouched);
-                    lastHolder->setValue(false);
                     doRemove = true;
-                    
+                    lastInField = true;
                 }
                 else if (handTouched > -1)
                 {
                     lastHolder = getHolderNodeByTag(handManager, handTouched);
                     lastHolder->setValue(false);
                     doRemove = false;
+                    lastInField = false;
                 }
                 else
                 {
@@ -799,7 +810,6 @@ bool Game::onTouchMove(Touch* touch, Event* event)
     {
         if (bLetterPickedUp)
         {
-            bLetterMoved = true;
             Vec2 lastLetterLocation = currentLetter->getPosition();
             lastTouchLocation = touch->getLocation();
             currentLetter->setPosition(lastLetterLocation + touch->getDelta());
@@ -807,46 +817,62 @@ bool Game::onTouchMove(Touch* touch, Event* event)
             Vec2 currentLetterLocation = currentLetter->getPosition();
             if (touchedFieldHolder(currentLetterLocation) < 0)
             {
-                if (touchedFieldHolder(lastLetterLocation) >= 0)
+                if (lastInField)
                 {
-                    // Letter has exited the field
-                    lastHolder = getHolderNodeByLoc(fieldManager, lastLetterLocation);
+                    std::cout << "in Field -> Out of Field\n";
                     if (doRemove)
                     {
                         removeLetter(currentLetter);
+                        doRemove = false;
                     }
                     else
                     {
                         unshiftLetters();
                     }
-                    bScheduleMoveAllLetters = true;
+                     if (not bScheduleMoveAllLetters)
+                        bScheduleMoveAllLetters = true;
                     updateCurrentWord(); 
-                    updateValidWord();
-                }
-            }
-            else
-            {
-                if (touchedFieldHolder(lastLetterLocation) < 0)
-                {
-                    // Letter has entered the field
-                    shiftLetters(currentLetter);
-                    bScheduleMoveAllLetters = true;
-                    updateCurrentWord(); 
-                    updateValidWord();
                 }
                 else
                 {
-                    // Letter is shifting in the field
+                    std::cout << "Out of Field->Out of Field\n";
+                }
+                lastInField = false;
+            }
+            else
+            {
+                if (not lastInField)
+                {
+                    std::cout << "Out of Field->Into Field\n";
+                    shiftLetters(currentLetter);
+                    if (not bScheduleMoveAllLetters)
+                        bScheduleMoveAllLetters = true;
+                    updateCurrentWord(); 
+                }
+                else
+                {
+                    std::cout << "In Field -> In Field\n";
                     int lastHolderM = touchedFieldHolder(lastLetterLocation);
                     int currentHolderM = touchedFieldHolder(currentLetterLocation);
                     if (lastHolderM != currentHolderM)
                     {
-                        unshiftLetters();
+                        if (doRemove)
+                        {
+                            removeLetter(currentLetter);
+                            doRemove = false;
+                        }
+                        else
+                        {
+                            unshiftLetters();
+                        }
+                        updateCurrentWord();
                         shiftLetters(currentLetter);
-                        bScheduleMoveAllLetters = true;
+                        if (not bScheduleMoveAllLetters)
+                            bScheduleMoveAllLetters = true;
                         updateCurrentWord(); 
                     }
                 }
+                lastInField = true;
             }
         }
     }
@@ -868,40 +894,40 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
     {
         if (bLetterPickedUp)
         {
-            if (bLetterMoved)
-            {
-                int fieldTouched = touchedFieldHolder(lastTouchLocation);
-                int handTouched = touchedHandHolder(lastTouchLocation);
+            int fieldTouched = touchedFieldHolder(lastTouchLocation);
+            int handTouched = touchedHandHolder(lastTouchLocation);
 
-                if (fieldTouched > -1)
+            if (fieldTouched > -1)
+            {
+                std::cout << "placeLetter\n";
+                placeLetter(currentLetter);
+                bScheduleMoveAllLetters = true;
+                updateCurrentWord(); 
+                updateValidWord();
+            }
+            else if (handTouched > -1)
+            {
+                HolderNode* holder = getHolderNodeByTag(handManager, handTouched);
+                if (!holder->value())
                 {
-                    placeLetter(currentLetter);
-                    bScheduleMoveAllLetters = true;
-                    updateCurrentWord(); 
-                    updateValidWord();
-                }
-                else if (handTouched > -1)
-                {
-                    HolderNode* holder = getHolderNodeByTag(handManager, handTouched);
-                    if (!holder->value())
-                    {
-                        holder->setValue(true);
-                        auto action = MoveTo::create(0.1, holder->getPosition());
-                        currentLetter->scheduleAction(action);
-                    }
-                    else
-                    {
-                        auto action = MoveTo::create(0.1, lastHolder->getPosition());
-                        currentLetter->scheduleAction(action);
-                    }
+                    holder->setValue(true);
+                    auto action = MoveTo::create(0.1, holder->getPosition());
+                    currentLetter->scheduleAction(action);
                 }
                 else
                 {
                     auto action = MoveTo::create(0.1, lastHolder->getPosition());
                     currentLetter->scheduleAction(action);
                 }
-                bLetterMoved = false;
             }
+            else
+            {
+                if (lastHolder->getParent() == fieldManager)
+                    currentLetter->setInField(true);
+                auto action = MoveTo::create(0.1, lastHolder->getPosition());
+                currentLetter->scheduleAction(action);
+            }
+            currentLetter = nullptr;
             bLetterPickedUp = false;
         }
     }
@@ -955,9 +981,15 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
 
 void Game::placeLetter(LetterNode* letter)
 {
+    std::cout << "\nPlace Letter\n";
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n";
+    printFieldVec();
     HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
     int currentTag = currentHolder->getTag();
-    if (currentWordLength < 9)
+    int emptySpace = currentHolder->getTag();;
+    std::cout << "currentTag = " << currentTag << "\n";
+    if (currentWordLength <= 9)
     {
         bool rightmost = true;
         bool leftmost = true;
@@ -965,7 +997,7 @@ void Game::placeLetter(LetterNode* letter)
         {
             if (vFieldTracker[i] > -1)
             {
-                if (i > currentTag)
+                if (i >= currentTag)
                 {
                     rightmost = false;
                 }
@@ -978,7 +1010,12 @@ void Game::placeLetter(LetterNode* letter)
                     std::cout << "*** Something went wrong with placeLetter ***\n";
                 }
             }
+            else if (vFieldTracker[i] == -2)
+            {
+                emptySpace = i;
+            }
         }
+        std::cout << "currentWordLength = " << currentWordLength << "\n";
         if (leftmost and rightmost)
         {
             vFieldTracker[numLetters-1] = letter->getTag();
@@ -987,7 +1024,7 @@ void Game::placeLetter(LetterNode* letter)
         else if (leftmost)
         {
             vFieldTracker[numLetters-1-currentWordLength] = letter->getTag();
-            std::cout << "Left : " << numLetters-1-currentWordLength << "\n";
+            std::cout << "Left : " << numLetters-currentWordLength << "\n";
 
         }
         else if (rightmost)
@@ -998,26 +1035,38 @@ void Game::placeLetter(LetterNode* letter)
         }
         else
         {
-            vFieldTracker[currentTag] = letter->getTag();
-            std::cout << "None : " << currentTag << "\n";
-
+            vFieldTracker[emptySpace] = letter->getTag();
+            std::cout << "None : " << emptySpace << "\n";
         }
         letter->setInField(true);
     } 
+    printFieldVec();
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n\n";
 }
 
 void Game::shiftLetters(LetterNode* letter)
 {
+    std::cout << "\nShift Letters\n";
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n";
+    printFieldVec();
     HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
     int currentTag = currentHolder->getTag();
+    std::cout << "currentTag = " << currentTag << "\n";
     std::vector<int> vBackup(17, -1);
     bool switched = false;
-    if (currentWordLength < 9)
+    if (currentWordLength <= 9)
     {
         for (int i=0; i < 17; i++)
         {
             if (vFieldTracker[i] > -1)
             {
+                if (i == 0)
+                {
+                    std::cout << "Shifting full letters\n";
+                    return;
+                }
                 if (i > currentTag)
                 {
                     if (!switched)
@@ -1035,13 +1084,20 @@ void Game::shiftLetters(LetterNode* letter)
         }
         vFieldTracker = vBackup;
     }  
+    printFieldVec();
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n\n";
 }
 
 void Game::unshiftLetters()
 {
+    std::cout << "\nUnshift Letters\n";
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n";
+    printFieldVec();
     std::vector<int> vBackup(17, -1);
     bool emptyFound = false;
-    if (currentWordLength < 9 and currentWordLength >= 1)
+    if (currentWordLength <= 9 and currentWordLength >= 1)
     {
         for (int i=0; i < 17; i++)
         {
@@ -1063,52 +1119,67 @@ void Game::unshiftLetters()
         }
         vFieldTracker = vBackup;
     }  
+
+    printFieldVec();
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n\n";
 }
 
 void Game::moveAllLetters()
 {
-    printFieldVec();
+    //printFieldVec();
+    if (currentLetter)
+        std::cout << "Current Letter: " << currentLetter->value() << "\n";
     for (int count = 0; count < (int)vFieldTracker.size(); count++)
     {
         int num = vFieldTracker[count];
-        if (num > 0)
+        if (num >= 0)
         {
             auto letter = getLetterNodeByTag(letterManager, num);
             auto holder = fieldManager->getChildByTag(count);
             auto action = MoveTo::create(0.1, holder->getPosition());
-            letter->scheduleAction(action);
-            letter->setHolderTag(count);
+            if (letter->inField())
+            {
+                letter->stopAllActions();
+                letter->scheduleAction(action);
+                letter->setHolderTag(count);
+            }
         }
     }
 }
 
 void Game::removeLetter(LetterNode* letter)
 {
+    std::cout << "\nRemove Letter\n";
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n";
+    printFieldVec();
     int letterTag = letter->getTag();
+    std::cout << "letterTag = " << letterTag << "\n";
     std::vector<int> vBackup(17, -1);
+    letter->setInField(false);
     if (currentWordLength > 0)
     {
         bool found = false;
         for (int i=0; i < 17; i++)
         {
-            if (vFieldTracker[i] > -1)
+            if (vFieldTracker[i] == letterTag or vFieldTracker[i] == -2)
             {
-                if (vFieldTracker[i] == letterTag)
-                {
-                    found = true;
-                }
+                found = true;
+            }
+            else
+            {
+                if (found)
+                    vBackup[i-1] = vFieldTracker[i];
                 else
-                {
-                    if (found)
-                        vBackup[i-1] = vFieldTracker[i];
-                    else
-                        vBackup[i+1] = vFieldTracker[i];
-                }
+                    vBackup[i+1] = vFieldTracker[i];
             }
         }
-        letter->setInField(false);
         vFieldTracker = vBackup;
     }   
+    printFieldVec();
+    std::cout << "--------------------\n";
+    std::cout << "--------------------\n\n";
 }
 
 int Game::touchedFieldHolder(Vec2 location)
