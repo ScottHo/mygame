@@ -140,6 +140,19 @@ void Game::setupUi()
     globalFrame->setAnchorPoint(Vec2(0.0, 0.0));
     this->addChild(globalFrame, 2);
 
+    SpriteFrame* menuWindowFrame = SpriteFrame::create("Red.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
+    menuFrame = Sprite::create();
+    menuFrame->setSpriteFrame(menuWindowFrame);
+    menuFrame->setPosition(0, 0);
+    menuFrame->setAnchorPoint(Vec2(0.0, 0.0));
+    this->addChild(menuFrame, -2);
+
+    gameOverFrame = Sprite::create();
+    gameOverFrame->setSpriteFrame(menuWindowFrame);
+    gameOverFrame->setPosition(0, 0);
+    gameOverFrame->setAnchorPoint(Vec2(0.0, 0.0));
+    this->addChild(gameOverFrame, -1);
+
     towerManager = Sprite::create();
     towerManager->setSpriteFrame(emptyWindowFrame);
     towerManager->setPosition(0, 0);
@@ -393,6 +406,10 @@ void Game::update(float delta)
                     tmp->unsetReachedGoal();
                     loseLife();
                     unitsLeft--;
+                    if (currentLife <= 0)
+                    {
+                        gameOverFrame->setLocalZOrder(2);
+                    }
                 }
             }
             break;
@@ -526,7 +543,7 @@ TowerNode* Game::createTower(int tag, int level)
 UnitNode* Game::createUnit(int tag, int level)
 {
     UnitNode* newUnit = UnitNode::createUnit("BaseUnit.png");
-    newUnit->setHealth(level*2);
+    newUnit->setHealth(level*4 + 2);
     newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
     newUnit->setAnchorPoint(Vec2(0,0));
     newUnit->setTag(tag);

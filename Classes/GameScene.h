@@ -37,6 +37,10 @@ private:
 	void setupEvents();
 
 	// --- UI ---
+	// Menus
+	Sprite* menuFrame;
+	Sprite* gameOverFrame;
+
 	// globalFrame
 	Sprite* globalFrame;
 	Sprite* towerManager;
@@ -99,7 +103,7 @@ private:
 	bool doMove = false;
 	float doMoveTimer = 0.5;
 	bool lastInField = false;
-	
+
 	std::vector<int> vFieldTracker;
 	void resetField()
 	{
@@ -183,7 +187,7 @@ private:
 	float numColumns = 12.0;
 	float gameRows = 6.0;
 	float gameColumns = 10.0;
-	float levelTime = 200.0;
+	float levelTime = 30.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8; 
 	int currentLife = 5;
