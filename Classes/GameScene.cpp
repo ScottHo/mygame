@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include "platform/CCFileUtils.h"
+#include "base/CCData.h"
 
 USING_NS_CC;
 
@@ -25,10 +26,10 @@ bool Game::init()
     {
         return false;
     }
-    loadAllWords();
     setupUi();
     setupEvents();
     this->scheduleUpdate();
+    loadAllWords();
     killPhaseDone();
     return true;
 }
@@ -609,15 +610,12 @@ void Game::updateValidWord()
 
 void Game::loadAllWords()
 {
-    std::ifstream file(FileUtils::getInstance()->fullPathForFilename("words.txt"));
-    if (file.is_open())
+    std::string data = FileUtils::getInstance()->getStringFromFile(FileUtils::getInstance()->fullPathForFilename("words.txt"));
+    std::istringstream ss(data);
+    std::string line;
+    while (std::getline(ss, line))
     {
-        std::string line;
-        while (std::getline(file, line))
-        {
-            vWords.push_back(line);
-        }
-        file.close();
+        vWords.push_back(line);
     }
     std::cout << "Words: " << vWords.size() << "\n";
 }
