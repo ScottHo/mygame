@@ -72,7 +72,7 @@ void Game::clearHolders()
     handManager->removeAllChildrenWithCleanup(true);
 }   
 
-void Game::cleanup()
+void Game::cleanupAll()
 {
     clearTiles();
     clearTowers();
@@ -179,7 +179,7 @@ void Game::setupUi()
     gameFrame->addChild(unitManager);
 
     int tileCounter = 0;
-    int map[(int)gameRows][(int)gameColumns] =
+    int map[6][10] =
     {{2,  0,  0,  1, -1, -1, 10,  0,  0,  9},
      {0, -1, -1, -1, -1, -1, -1, -1, -1,  0},
      {0, -1, -1,  5,  0,  0,  6, -1, -1,  0},
@@ -239,12 +239,14 @@ void Game::setupUi()
     doneButton->setPosition(Vec2(infoFrameWidth*2.0/4.0, infoFrameHeight*(1.0/9.0)));
     doneButton->setAnchorPoint(Vec2(0.5, 0.5));
     doneButton->addTouchEventListener(CC_CALLBACK_2(Game::onDone, this));
+    doneButton->setScale(scale, scale);
     infoFrame->addChild(doneButton);
 
     moneyLabel = Label::createWithSystemFont("$0", "Arial", 16);
     moneyLabel->setString("$" + std::to_string(towerMenu->money()));
     moneyLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*(5.0/9.0)));
     moneyLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    moneyLabel->setScale(scale, scale);
     infoFrame->addChild(moneyLabel);
 
     timeLabel = Label::createWithSystemFont("0:00", "Arial", 16);
@@ -253,38 +255,29 @@ void Game::setupUi()
     timeLabel->setString(ss.str());
     timeLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*6.0/9.0));
     timeLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    timeLabel->setScale(scale, scale);
     infoFrame->addChild(timeLabel);
 
     levelLabel = Label::createWithSystemFont("0", "Arial", 16);
     levelLabel->setString("Level " + std::to_string(currentLevel));
     levelLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*7.0/9.0));
     levelLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    levelLabel->setScale(scale, scale);
     infoFrame->addChild(levelLabel);
 
     lifeLabel = Label::createWithSystemFont("", "Arial", 16);
     lifeLabel->setString(std::to_string(currentLife) + " Lives");
     lifeLabel->setPosition(Vec2(infoFrameWidth*3.0/6.0, infoFrameHeight*8.0/9.0));
     lifeLabel->setAnchorPoint(Vec2(0.5, 0.5));
+    lifeLabel->setScale(scale, scale);
     infoFrame->addChild(lifeLabel);
 
-    auto baseLetterSprite = Sprite::create(fieldHolderImage);
-    float letterWidth = baseLetterSprite->getContentSize().width;
-    float fieldHolderHeight = baseLetterSprite->getContentSize().height * 1.35;
-
-    float fieldHolderWidth = letterWidth*1.35;
-    float numFieldHolders = gameFrameWidth/fieldHolderWidth;
-    double margin = (gameFrameWidth - (fieldHolderWidth*17.0))/2.0;
+    auto baseFieldHolderSprite = HolderNode::createHolder("FieldHolder.png");
+    float fieldHolderWidth = baseFieldHolderSprite->getContentSize().width * scale;
+    double margin = (gameFrameWidth - (fieldHolderWidth*(numLetters*2.0-1.0)))/2.0;
     std::cout << margin << " = margin\n";
-    std::cout << numFieldHolders << " = numFieldHolders\n";
+    std::cout << numLetters*2.0-1.0 << " = numFieldHolders\n";
     std::cout << fieldHolderWidth << " = fieldHolderWidth\n";
-
-
-    auto fieldBackgroundSpriteFrame = SpriteFrame::create("Black.png", Rect(0.0, 0.0, fieldHolderWidth*19.5, fieldHolderHeight*1.42));
-    fieldBackground = Sprite::create();
-    fieldBackground->setSpriteFrame(fieldBackgroundSpriteFrame);
-    fieldBackground->setAnchorPoint(Vec2(0.5, 0.5));
-    fieldBackground->setPosition(gameFrameWidth/2.0, gameFrameHeight*(5.0/7.0));
-    lettersFrame->addChild(fieldBackground);
 
     fieldManager = Sprite::create();
     fieldManager->setSpriteFrame(gameSpriteFrame);
@@ -311,12 +304,14 @@ void Game::setupUi()
     submitButton->setPosition(Vec2(gameFrameWidth*3.0/9.0, gameFrameHeight*(1.0/7.0)));
     submitButton->setAnchorPoint(Vec2(0.0,0.0));
     submitButton->addTouchEventListener(CC_CALLBACK_2(Game::onSubmit, this));
+    submitButton->setScale(scale, scale);
     lettersFrame->addChild(submitButton, 0, eSubmitButton);
 
     startButton = ui::Button::create("StartButtonUnclicked.png", "StartButtonClicked.png", "StartButtonUnclicked.png");
     startButton->setPosition(Vec2(gameFrameWidth*6.0/9.0, gameFrameHeight*(1.0/7.0)));
     startButton->setAnchorPoint(Vec2(0.0,0.0));
     startButton->addTouchEventListener(CC_CALLBACK_2(Game::onStart, this));
+    startButton->setScale(scale, scale);
     lettersFrame->addChild(startButton, 0, eSubmitButton);
 
     for (int i = 0; i<numLetters; ++i)
@@ -325,22 +320,19 @@ void Game::setupUi()
         auto letterHolder = HolderNode::createHolder(letterHolderImage);
         letterHolder->setPosition(gameFrameWidth*count/10.0, gameFrameHeight*(3.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
-        letterHolder->setScale(1.4, 1.4);
+        letterHolder->setScale(scale, scale);
         handManager->addChild(letterHolder, 0, i);
     }
-
 
     for (int i = 0; i<numLetters*2-1; ++i)
     {
         double count = i;
-        auto letterHolder = HolderNode::createHolder("blacktest.png");
-        letterHolder->setPosition(gameFrameWidth*count/numFieldHolders + margin, gameFrameHeight*(5.0/7.0));
+        auto letterHolder = HolderNode::createHolder("FieldHolder.png");
+        letterHolder->setPosition(fieldHolderWidth*count + margin, gameFrameHeight*(5.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
-        letterHolder->setScale(1.35, 1.35*1.42);
+        letterHolder->setScale(scale, scale);
         fieldManager->addChild(letterHolder, 0, i);
     }
-
-
 }
 
 void Game::update(float delta)
@@ -574,7 +566,7 @@ void Game::dealTiles()
         sprite->setValue(randomLetters.at(i));
         sprite->setPosition(holder->getPosition());
         sprite->setAnchorPoint(Vec2(0.5, 0.5));
-        sprite->setScale(1.35, 1.35);
+        sprite->setScale(scale, scale);
         letterManager->addChild(sprite, 0, i);
         holder->setLetterTag(sprite->getTag());
 
@@ -924,6 +916,8 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
             }
             else if (handTouched > -1)
             {
+                if (lastInField)
+                    unshiftLetters();
                 HolderNode* holder = getHolderNodeByTag(handManager, handTouched);
                 if (!holder->value())
                 {
@@ -933,16 +927,28 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                 }
                 else
                 {
-                    auto action = MoveTo::create(0.1, lastHolder->getPosition());
-                    currentLetter->scheduleAction(action);
+                    HolderNode* emptyHolder = getEmptyHolder();
+                    if (emptyHolder)
+                    {
+                        auto action = MoveTo::create(0.1, getEmptyHolder()->getPosition());
+                        currentLetter->scheduleAction(action);
+                        emptyHolder->setValue(true);
+                    }
                 }
             }
             else
             {
+                if (lastInField)
+                    unshiftLetters();
                 if (lastHolder->getParent() == fieldManager)
                     currentLetter->setInField(true);
-                auto action = MoveTo::create(0.1, lastHolder->getPosition());
-                currentLetter->scheduleAction(action);
+                HolderNode* emptyHolder = getEmptyHolder();
+                if (emptyHolder)
+                {
+                    auto action = MoveTo::create(0.1, getEmptyHolder()->getPosition());
+                    currentLetter->scheduleAction(action);
+                    emptyHolder->setValue(true);
+                }
             }
             currentLetter = nullptr;
             bLetterPickedUp = false;
@@ -996,6 +1002,17 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
     return true;
 }
 
+HolderNode* Game::getEmptyHolder()
+{
+    for (auto tmpNode : handManager->getChildren())
+    {
+        HolderNode* tmpHolder = dynamic_cast<HolderNode*>(tmpNode);
+        if (!tmpHolder->value())
+            return tmpHolder;
+    }
+    return nullptr;
+}
+
 void Game::placeLetter(LetterNode* letter)
 {
     std::cout << "\nPlace Letter\n";
@@ -1006,11 +1023,11 @@ void Game::placeLetter(LetterNode* letter)
     int currentTag = currentHolder->getTag();
     int emptySpace = currentHolder->getTag();;
     std::cout << "currentTag = " << currentTag << "\n";
-    if (currentWordLength <= 9)
+    if (currentWordLength <= numLetters)
     {
         bool rightmost = true;
         bool leftmost = true;
-        for (int i=0; i < 17; i++)
+        for (int i=0; i < numHolders; i++)
         {
             if (vFieldTracker[i] > -1)
             {
@@ -1071,11 +1088,11 @@ void Game::shiftLetters(LetterNode* letter)
     HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
     int currentTag = currentHolder->getTag();
     std::cout << "currentTag = " << currentTag << "\n";
-    std::vector<int> vBackup(17, -1);
+    std::vector<int> vBackup(numHolders, -1);
     bool switched = false;
-    if (currentWordLength <= 9)
+    if (currentWordLength <= numLetters)
     {
-        for (int i=0; i < 17; i++)
+        for (int i=0; i < numHolders; i++)
         {
             if (vFieldTracker[i] > -1)
             {
@@ -1108,15 +1125,16 @@ void Game::shiftLetters(LetterNode* letter)
 
 void Game::unshiftLetters()
 {
+    
     std::cout << "\nUnshift Letters\n";
     std::cout << "--------------------\n";
     std::cout << "--------------------\n";
     printFieldVec();
-    std::vector<int> vBackup(17, -1);
+    std::vector<int> vBackup(numHolders, -1);
     bool emptyFound = false;
-    if (currentWordLength <= 9 and currentWordLength >= 1)
+    if (currentWordLength <= numLetters and currentWordLength >= 1)
     {
-        for (int i=0; i < 17; i++)
+        for (int i=0; i < numHolders; i++)
         {
             if (vFieldTracker[i] > -1)
             {
@@ -1173,12 +1191,12 @@ void Game::removeLetter(LetterNode* letter)
     printFieldVec();
     int letterTag = letter->getTag();
     std::cout << "letterTag = " << letterTag << "\n";
-    std::vector<int> vBackup(17, -1);
+    std::vector<int> vBackup(numHolders, -1);
     letter->setInField(false);
     if (currentWordLength > 0)
     {
         bool found = false;
-        for (int i=0; i < 17; i++)
+        for (int i=0; i < numHolders; i++)
         {
             if (vFieldTracker[i] == letterTag or vFieldTracker[i] == -2)
             {

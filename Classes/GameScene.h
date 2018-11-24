@@ -21,7 +21,7 @@ public:
     void clearUnits();
     void clearTowers();
     void clearHolders();    
-    void cleanup();
+    void cleanupAll();
     std::string getWord(){ return sValidWord; }
     bool isValidWord(){ return bIsValidWord; }
     void loseLife()
@@ -52,7 +52,6 @@ private:
 	TowerMenu* towerMenu;
 	// lettersFrame
 	Sprite* lettersFrame;
-	Sprite* fieldBackground;
 	Sprite* letterManager;
 	Sprite* fieldManager;
 	Sprite* handManager;
@@ -139,6 +138,7 @@ private:
 	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
+	HolderNode* getEmptyHolder();
 	TowerNode* getTowerNodeByLoc(Node* parent, Vec2 loc)
 	{
 		for (auto node : parent->getChildren())
@@ -182,6 +182,7 @@ private:
 	// Parameters
 	float spawnFrequencyTimer = 1.0;
 	int numLetters = 9;
+	int numHolders = numLetters*2 - 1;
 	float scale = 1.0;
 	float numRows = 6.0;
 	float numColumns = 12.0;
