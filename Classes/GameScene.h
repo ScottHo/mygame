@@ -71,11 +71,7 @@ private:
 
 	// helpers
 	LetterNode* currentLetter;
-	HolderNode* leftHolder;
-	HolderNode* rightHolder;
-	HolderNode* lastHolder;
 	TowerNode* currentTower;
-
 
 	// --- Private Variables ---
 	Vec2 lastTouchLocation;
@@ -255,8 +251,6 @@ private:
 	    }
     	std::cout << "\n";
     	//std::cout << "0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7\n";
-    	std::cout << "RightHolder = " << rightHolder->getTag() << "\n";
-    	std::cout << "LeftHolder = " << leftHolder->getTag() << "\n";
     	std::cout << "************************\n";	
 	    
 	}

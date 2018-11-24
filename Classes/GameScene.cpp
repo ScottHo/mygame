@@ -7,6 +7,8 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include "platform/CCFileUtils.h"
+
 USING_NS_CC;
 
 Scene* Game::createScene()
@@ -436,7 +438,6 @@ void Game::wordPhaseDone()
     lettersFrame->setLocalZOrder(0);
     gameFrame->setLocalZOrder(1);
     globalFrame->setLocalZOrder(2);
-    lastHolder = nullptr;
     currentLetter = nullptr;
     submitButton->setEnabled(false);
     doneButton->setEnabled(true);
@@ -535,7 +536,7 @@ TowerNode* Game::createTower(int tag, int level)
 UnitNode* Game::createUnit(int tag, int level)
 {
     UnitNode* newUnit = UnitNode::createUnit("BaseUnit.png");
-    newUnit->setHealth(level*4 + 2);
+    newUnit->setHealth(level*4);
     newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
     newUnit->setAnchorPoint(Vec2(0,0));
     newUnit->setTag(tag);
@@ -608,7 +609,7 @@ void Game::updateValidWord()
 
 void Game::loadAllWords()
 {
-    std::ifstream file("Resources/words.txt");
+    std::ifstream file(FileUtils::getInstance()->fullPathForFilename("words.txt"));
     if (file.is_open())
     {
         std::string line;
@@ -618,6 +619,7 @@ void Game::loadAllWords()
         }
         file.close();
     }
+    std::cout << "Words: " << vWords.size() << "\n";
 }
 
 void Game::setupEvents()
@@ -777,8 +779,7 @@ bool Game::onTouchStart(Touch* touch, Event* event)
                 }
                 else if (handTouched > -1)
                 {
-                    lastHolder = getHolderNodeByTag(handManager, handTouched);
-                    lastHolder->setValue(false);
+                    getHolderNodeByTag(handManager, handTouched)->setValue(false);
                     doRemove = false;
                     lastInField = false;
                 }
@@ -931,7 +932,8 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
                     if (emptyHolder)
                     {
                         auto action = MoveTo::create(0.1, getEmptyHolder()->getPosition());
-                        currentLetter->scheduleAction(action);
+                        if (currentLetter)
+                            currentLetter->scheduleAction(action);
                         emptyHolder->setValue(true);
                     }
                 }
@@ -940,8 +942,6 @@ bool Game::onTouchEnd(Touch* touch, Event* event)
             {
                 if (lastInField)
                     unshiftLetters();
-                if (lastHolder->getParent() == fieldManager)
-                    currentLetter->setInField(true);
                 HolderNode* emptyHolder = getEmptyHolder();
                 if (emptyHolder)
                 {
@@ -1020,6 +1020,19 @@ void Game::placeLetter(LetterNode* letter)
     std::cout << "--------------------\n";
     printFieldVec();
     HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
+    if (!currentHolder)
+    {
+        HolderNode* emptyHolder = getEmptyHolder();
+        if (emptyHolder)
+        {
+            auto action = MoveTo::create(0.1, getEmptyHolder()->getPosition());
+            currentLetter->scheduleAction(action);
+            emptyHolder->setValue(true);
+        }
+        if (lastInField)
+            unshiftLetters();
+        return;
+    }
     int currentTag = currentHolder->getTag();
     int emptySpace = currentHolder->getTag();;
     std::cout << "currentTag = " << currentTag << "\n";
@@ -1086,6 +1099,8 @@ void Game::shiftLetters(LetterNode* letter)
     std::cout << "--------------------\n";
     printFieldVec();
     HolderNode* currentHolder = getHolderNodeByLoc(fieldManager, letter->getPosition());
+    if (!currentHolder)
+        return;
     int currentTag = currentHolder->getTag();
     std::cout << "currentTag = " << currentTag << "\n";
     std::vector<int> vBackup(numHolders, -1);
