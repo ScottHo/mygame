@@ -26,8 +26,8 @@ public:
     bool isValidWord(){ return bIsValidWord; }
     void loseLife()
     {
-    	lifeLabel->setString(std::to_string(currentLife) + " Lives");
     	currentLife--;
+    	lifeLabel->setString(std::to_string(currentLife) + " Lives");
     }
     CREATE_FUNC(Game);
     void update(float delta) override;
@@ -38,6 +38,7 @@ private:
 
 	// --- UI ---
 	// Menus
+	Sprite* mainFrame;
 	Sprite* menuFrame;
 	Sprite* gameOverFrame;
 
@@ -57,6 +58,10 @@ private:
 	Sprite* handManager;
 	ui::Widget* submitButton;
 	ui::Widget* startButton;
+	ui::Widget* easyButton;
+	ui::Widget* hardButton;
+	ui::Widget* backToMenuButton;
+
 
 
 	// infoFrame
@@ -98,6 +103,8 @@ private:
 	bool doMove = false;
 	float doMoveTimer = 0.5;
 	bool lastInField = false;
+	int levelModifier;
+	int levelOffset;
 
 	std::vector<int> vFieldTracker;
 	void resetField()
@@ -116,7 +123,7 @@ private:
 	bool onContactSeparate(PhysicsContact& contact);
 	void updateCurrentWord();
 	void updateValidWord();
-	enum ePhases{stWait, stWord, stBuild, stKill};
+	enum ePhases{stWait, stWord, stBuild, stKill, stMenu, stLose};
 	ePhases currentPhase;
 	enum eLettersManagers{eLetterManager, eFieldManager, eHandManager, eSubmitButton};
 	int touchedLetter(Vec2 location);
@@ -133,6 +140,9 @@ private:
 	void onSubmit(Ref* sender, ui::Widget::TouchEventType type);
 	void onStart(Ref* sender, ui::Widget::TouchEventType type);
 	void onDone(Ref* sender, ui::Widget::TouchEventType type);
+	void onEasy(Ref* sender, ui::Widget::TouchEventType type);
+	void onHard(Ref* sender, ui::Widget::TouchEventType type);
+	void onBackToMenu(Ref* sender, ui::Widget::TouchEventType type);
 	void spawnEnemy();
 	HolderNode* getEmptyHolder();
 	TowerNode* getTowerNodeByLoc(Node* parent, Vec2 loc)
@@ -167,6 +177,9 @@ private:
 	void buildPhaseDone();
 	void killPhaseDone();
 	void waitPhaseDone();
+	void menuPhaseDone();
+	void loseGame();
+	void resetData();
 
 	std::vector<std::string> vWords;
 
@@ -187,7 +200,8 @@ private:
 	float levelTime = 30.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8; 
-	int currentLife = 5;
+	int currentLife = 8;
+	float letterScale = 2.5;
 
 	void printFieldVec()
 	{

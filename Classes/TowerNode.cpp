@@ -66,17 +66,11 @@ void TowerNode::addTarget(UnitNode* _target)
 
 void TowerNode::removeTarget(UnitNode* _target)
 {
-	std::vector<UnitNode*>::iterator indx = lower_bound(targets.begin(),targets.end(), _target);
-	int pos=indx-targets.begin();
-	// Attempt to remove the target (unless its dead)
-	if(!(indx == targets.end() || *indx!=_target))
+	targets.erase(std::remove(targets.begin(), targets.end(), _target), targets.end());
+	if (targets.size() == 0)
 	{
-		targets.erase(targets.begin()+pos);
-		if (targets.size() == 0)
-		{
-			hasTarget = false;
-			setIdle();
-		}
+		hasTarget = false;
+		setIdle();
 	}
 }
 

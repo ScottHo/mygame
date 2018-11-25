@@ -30,7 +30,6 @@ bool Game::init()
     setupEvents();
     this->scheduleUpdate();
     loadAllWords();
-    killPhaseDone();
     return true;
 }
 
@@ -113,12 +112,19 @@ void Game::setupUi()
     std::cout << "gameFrame = " << gameFrameWidth << " " << gameFrameHeight << "\n";
     std::cout << "infoFrame = " << infoFrameWidth << " " << infoFrameHeight << "\n";
 
+    SpriteFrame* emptyWindowFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
+    mainFrame = Sprite::create();
+    mainFrame->setSpriteFrame(emptyWindowFrame);
+    mainFrame->setPosition(0, 0);
+    mainFrame->setAnchorPoint(Vec2(0.0, 0.0));
+    this->addChild(mainFrame, 1);
+
     SpriteFrame* gameSpriteFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, gameFrameWidth, gameFrameHeight));
 	gameFrame = Sprite::create();
     gameFrame->setSpriteFrame(gameSpriteFrame);
     gameFrame->setPosition(0, 0);
     gameFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(gameFrame, 0);
+    mainFrame->addChild(gameFrame, 0);
 
     SpriteFrame* lettersSpriteFrame = SpriteFrame::create("Beige.png", Rect(0.0, 0.0, gameFrameWidth, gameFrameHeight));
     lettersFrame = Sprite::create();
@@ -126,7 +132,7 @@ void Game::setupUi()
     lettersFrame->setPosition(0, 0);
     lettersFrame->setAnchorPoint(Vec2(0,0));
     lettersFrame->setName("LettersFrame");
-    this->addChild(lettersFrame, 1);
+    mainFrame->addChild(lettersFrame, 1);
 
     SpriteFrame* infoSpriteFrame = SpriteFrame::create("Grey.png", Rect(0.0, 0.0, infoFrameWidth, infoFrameHeight));
     infoFrame = Sprite::create();
@@ -134,27 +140,48 @@ void Game::setupUi()
     infoFrame->setPosition(gameFrameWidth, 0.0);
     infoFrame->setAnchorPoint(Vec2(0.0, 0.0));
     infoFrame->setName("InfoFrame");
-    this->addChild(infoFrame, 0);
+    mainFrame->addChild(infoFrame, 0);
 
-    SpriteFrame* emptyWindowFrame = SpriteFrame::create("Empty.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
     globalFrame = Sprite::create();
     globalFrame->setSpriteFrame(emptyWindowFrame);
     globalFrame->setPosition(0, 0);
     globalFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(globalFrame, 2);
+    mainFrame->addChild(globalFrame, 2);
 
-    SpriteFrame* menuWindowFrame = SpriteFrame::create("Red.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
+    SpriteFrame* menuWindowFrame = SpriteFrame::create("Blue.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
     menuFrame = Sprite::create();
     menuFrame->setSpriteFrame(menuWindowFrame);
     menuFrame->setPosition(0, 0);
     menuFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(menuFrame, -2);
+    this->addChild(menuFrame, 2);
 
+    easyButton = ui::Button::create("EasyButtonUnclicked.png", "EasyButtonClicked.png", "EasyButtonUnclicked.png");
+    easyButton->setPosition(Vec2(fWindowWidth*2.0/4.0, fWindowHeight*(4.0/9.0)));
+    easyButton->setAnchorPoint(Vec2(0.5, 0.5));
+    easyButton->addTouchEventListener(CC_CALLBACK_2(Game::onEasy, this));
+    easyButton->setScale(scale, scale);
+    menuFrame->addChild(easyButton);
+
+    hardButton = ui::Button::create("HardButtonUnclicked.png", "HardButtonClicked.png", "HardButtonUnclicked.png");
+    hardButton->setPosition(Vec2(fWindowWidth*2.0/4.0, fWindowHeight*(2.0/9.0)));
+    hardButton->setAnchorPoint(Vec2(0.5, 0.5));
+    hardButton->addTouchEventListener(CC_CALLBACK_2(Game::onHard, this));
+    hardButton->setScale(scale, scale);
+    menuFrame->addChild(hardButton);
+
+    SpriteFrame* loseSpriteFrame = SpriteFrame::create("Red.png", Rect(0.0, 0.0, fWindowWidth, fWindowHeight));
     gameOverFrame = Sprite::create();
-    gameOverFrame->setSpriteFrame(menuWindowFrame);
+    gameOverFrame->setSpriteFrame(loseSpriteFrame);
     gameOverFrame->setPosition(0, 0);
     gameOverFrame->setAnchorPoint(Vec2(0.0, 0.0));
-    this->addChild(gameOverFrame, -1);
+    this->addChild(gameOverFrame, 1);
+
+    backToMenuButton = ui::Button::create("BackToMenuUnclicked.png", "BackToMenuClicked.png", "BackToMenuUnclicked.png");
+    backToMenuButton->setPosition(Vec2(fWindowWidth*2.0/4.0, fWindowHeight*(1.0/9.0)));
+    backToMenuButton->setAnchorPoint(Vec2(0.5, 0.5));
+    backToMenuButton->addTouchEventListener(CC_CALLBACK_2(Game::onBackToMenu, this));
+    backToMenuButton->setScale(scale, scale);
+    gameOverFrame->addChild(backToMenuButton);
 
     towerManager = Sprite::create();
     towerManager->setSpriteFrame(emptyWindowFrame);
@@ -276,7 +303,7 @@ void Game::setupUi()
     infoFrame->addChild(lifeLabel);
 
     auto baseFieldHolderSprite = HolderNode::createHolder("FieldHolder.png");
-    float fieldHolderWidth = baseFieldHolderSprite->getContentSize().width * scale;
+    float fieldHolderWidth = baseFieldHolderSprite->getContentSize().width * letterScale;
     double margin = (gameFrameWidth - (fieldHolderWidth*(numLetters*2.0-1.0)))/2.0;
     std::cout << margin << " = margin\n";
     std::cout << numLetters*2.0-1.0 << " = numFieldHolders\n";
@@ -323,7 +350,7 @@ void Game::setupUi()
         auto letterHolder = HolderNode::createHolder(letterHolderImage);
         letterHolder->setPosition(gameFrameWidth*count/10.0, gameFrameHeight*(3.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
-        letterHolder->setScale(scale, scale);
+        letterHolder->setScale(letterScale, letterScale);
         handManager->addChild(letterHolder, 0, i);
     }
 
@@ -333,7 +360,7 @@ void Game::setupUi()
         auto letterHolder = HolderNode::createHolder("FieldHolder.png");
         letterHolder->setPosition(fieldHolderWidth*count + margin, gameFrameHeight*(5.0/7.0));
         letterHolder->setAnchorPoint(Vec2(0.5, 0.5));
-        letterHolder->setScale(scale, scale);
+        letterHolder->setScale(letterScale, letterScale);
         fieldManager->addChild(letterHolder, 0, i);
     }
 }
@@ -403,7 +430,8 @@ void Game::update(float delta)
                     unitsLeft--;
                     if (currentLife <= 0)
                     {
-                        gameOverFrame->setLocalZOrder(2);
+                        loseGame();
+                        break;
                     }
                 }
             }
@@ -411,6 +439,81 @@ void Game::update(float delta)
         default:
             break;
     }
+}
+
+
+void Game::resetData()
+{
+    currentLevel = 0;
+    levelLabel->setString("Level " + std::to_string(currentLevel));
+    towerMenu->setMoney(0);
+    currentLife = 8;
+    lifeLabel->setString(std::to_string(currentLife) + " Lives");
+}
+
+void Game::onEasy(Ref* sender, ui::Widget::TouchEventType type)
+{
+    if (type == ui::Widget::TouchEventType::ENDED)
+    {
+        levelOffset = 3;
+        levelModifier = 5;
+        menuPhaseDone();
+    }
+}
+
+void Game::onHard(Ref* sender, ui::Widget::TouchEventType type)
+{
+    if (type == ui::Widget::TouchEventType::ENDED)
+    {
+        levelOffset = 3;
+        levelModifier = 8;
+        menuPhaseDone();
+    }
+}
+
+void Game::onBackToMenu(Ref* sender, ui::Widget::TouchEventType type)
+{
+    if (type == ui::Widget::TouchEventType::ENDED)
+    {
+        if (currentPhase == stLose)
+        {
+            backToMenuButton->setEnabled(false);
+            levelOffset = 1;
+            levelModifier = 6;
+            easyButton->setEnabled(true);
+            hardButton->setEnabled(true);
+            gameOverFrame->setLocalZOrder(0);
+            mainFrame->setLocalZOrder(1);
+            menuFrame->setLocalZOrder(2);
+            currentPhase = stMenu;
+        }
+    }
+}
+
+void Game::menuPhaseDone()
+{
+    menuFrame->setLocalZOrder(0);
+    gameOverFrame->setLocalZOrder(1);
+    mainFrame->setLocalZOrder(2);
+    easyButton->setEnabled(false);
+    hardButton->setEnabled(false);
+    killPhaseDone();
+
+}
+
+void Game::loseGame()
+{
+    currentPhase = stLose;
+    unitTagCounter = 0;
+    lettersFrame->setLocalZOrder(2);
+    globalFrame->setLocalZOrder(1);
+    gameFrame->setLocalZOrder(0);
+    gameOverFrame->setLocalZOrder(2);
+    backToMenuButton->setEnabled(true);
+    resetData();
+    clearUnits();
+    clearTowers();
+    std::cout << "You Lost\n";
 }
 
 void Game::waitPhaseDone()
@@ -423,7 +526,6 @@ void Game::waitPhaseDone()
     bScheduleMoveAllLetters = false;
     levelTimer = levelTime;
     currentPhase = stWord;
-    std::cout << "Wait Phase Done\n";
 }
 
 void Game::wordPhaseDone()
@@ -451,7 +553,6 @@ void Game::wordPhaseDone()
     clearTiles();
     resetField();
     currentPhase = stBuild;
-    std::cout << "Word Phase Done\n";
 
 }
 
@@ -470,7 +571,6 @@ void Game::buildPhaseDone()
     unitsUnspawned = enemiesPerLevel;
     unitsLeft = enemiesPerLevel;
     currentPhase = stKill;
-    std::cout << "Build Phase Done\n";
 }
 
 void Game::killPhaseDone()
@@ -484,7 +584,6 @@ void Game::killPhaseDone()
     currentLevel++;
     levelLabel->setString("Level " + std::to_string(currentLevel));
     currentPhase = stWait;
-    std::cout << "Kill Phase Done\n";
 
 }
 
@@ -523,7 +622,7 @@ TowerNode* Game::createTower(int tag, int level)
     newTower->setScale(scale);
     newTower->setName("Tower");
     currentTower = newTower;
-    auto range = PhysicsBody::createCircle(200.0);
+    auto range = PhysicsBody::createCircle(90.0 * scale);
     range->setContactTestBitmask(0x01);
     range->setCategoryBitmask(0x01);
     range->setCollisionBitmask(0x01);
@@ -537,7 +636,7 @@ TowerNode* Game::createTower(int tag, int level)
 UnitNode* Game::createUnit(int tag, int level)
 {
     UnitNode* newUnit = UnitNode::createUnit("BaseUnit.png");
-    newUnit->setHealth(level*4);
+    newUnit->setHealth(level*levelModifier - levelOffset);
     newUnit->setPosition(gridManager->getChildByTag(1)->getPosition());
     newUnit->setAnchorPoint(Vec2(0,0));
     newUnit->setTag(tag);
@@ -568,10 +667,9 @@ void Game::dealTiles()
         sprite->setValue(randomLetters.at(i));
         sprite->setPosition(holder->getPosition());
         sprite->setAnchorPoint(Vec2(0.5, 0.5));
-        sprite->setScale(scale, scale);
+        sprite->setScale(letterScale, letterScale);
         letterManager->addChild(sprite, 0, i);
         holder->setLetterTag(sprite->getTag());
-
     }
 }
 
@@ -610,8 +708,8 @@ void Game::updateValidWord()
 
 void Game::loadAllWords()
 {
-    std::string data = FileUtils::getInstance()->getStringFromFile(FileUtils::getInstance()->fullPathForFilename("words.txt"));
-    std::istringstream ss(data);
+    std::string filestring = FileUtils::getInstance()->getStringFromFile(FileUtils::getInstance()->fullPathForFilename("words.txt"));
+    std::istringstream ss(filestring);
     std::string line;
     while (std::getline(ss, line))
     {
