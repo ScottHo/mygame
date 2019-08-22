@@ -1,11 +1,8 @@
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
-#include "TowerNode.h"
-#include "UnitNode.h"
 #include "LetterNode.h"
 #include "HolderNode.h"
 #include "WordUtils.h"
-#include "TowerMenu.h"
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include <string>
@@ -18,17 +15,10 @@ public:
     virtual bool init() override;
     void dealTiles();
     void clearTiles();
-    void clearUnits();
-    void clearTowers();
     void clearHolders();    
     void cleanupAll();
     std::string getWord(){ return sValidWord; }
     bool isValidWord(){ return bIsValidWord; }
-    void loseLife()
-    {
-    	currentLife--;
-    	lifeLabel->setString(std::to_string(currentLife) + " Lives");
-    }
     CREATE_FUNC(Game);
     void update(float delta) override;
 private:
@@ -44,13 +34,11 @@ private:
 
 	// globalFrame
 	Sprite* globalFrame;
-	Sprite* towerManager;
 
 	// gameFrame
 	Sprite* gameFrame;
-	Sprite* gridManager;
-	Sprite* unitManager;
-	TowerMenu* towerMenu;
+
+
 	// lettersFrame
 	Sprite* lettersFrame;
 	Sprite* letterManager;
@@ -62,28 +50,19 @@ private:
 	ui::Widget* hardButton;
 	ui::Widget* backToMenuButton;
 
-
-
 	// infoFrame
 	Sprite* infoFrame;
-	Sprite* infoView;
-	Label* moneyLabel;
 	Label* timeLabel;
-	Label* lifeLabel;
 	Label* levelLabel;
-	Sprite* loadingZone;
-	ui::Widget* doneButton;
 
 	// helpers
 	LetterNode* currentLetter;
-	TowerNode* currentTower;
 
 	// --- Private Variables ---
 	Vec2 lastTouchLocation;
 	Vec2 originalLocation;
 	bool bLetterPickedUp = false;
 	bool bLetterMoved = false;
-	bool bTowerPickedUp;
 	std::string currentWord = ""; // lenght of 9
 	std::string sValidWord;
 	bool bIsValidWord;
@@ -91,20 +70,13 @@ private:
 	int longestWord;
 	bool doCountdown = false;
 	float levelTimer = 1.0;
-	int towerCount = 0;
-	int unitTagCounter = 0;
-	int unitsUnspawned;
-	int unitsLeft;
 	int currentLevel = 0;
-	bool bTowerUsed;
 	int currentWordLength = 0;
 	bool doRemove;
 	bool bScheduleMoveAllLetters;
 	bool doMove = false;
 	float doMoveTimer = 0.5;
 	bool lastInField = false;
-	int levelModifier;
-	int levelOffset;
 
 	std::vector<int> vFieldTracker;
 	void resetField()
@@ -123,12 +95,11 @@ private:
 	bool onContactSeparate(PhysicsContact& contact);
 	void updateCurrentWord();
 	void updateValidWord();
-	enum ePhases{stWait, stWord, stBuild, stKill, stMenu, stLose};
+	enum ePhases{stWait, stWord, stMenu, stLose};
 	ePhases currentPhase;
 	enum eLettersManagers{eLetterManager, eFieldManager, eHandManager, eSubmitButton};
 	int touchedLetter(Vec2 location);
 	int touchedTile(Vec2 location);
-	int touchedTower(Vec2 location);
 	int touchedHandHolder(Vec2 location);
 	int touchedFieldHolder(Vec2 location);
 	void placeLetter(LetterNode* letter);
@@ -143,17 +114,7 @@ private:
 	void onEasy(Ref* sender, ui::Widget::TouchEventType type);
 	void onHard(Ref* sender, ui::Widget::TouchEventType type);
 	void onBackToMenu(Ref* sender, ui::Widget::TouchEventType type);
-	void spawnEnemy();
 	HolderNode* getEmptyHolder();
-	TowerNode* getTowerNodeByLoc(Node* parent, Vec2 loc)
-	{
-		for (auto node : parent->getChildren())
-		{
-		    if (node->getBoundingBox().containsPoint(loc))
-		    	return dynamic_cast<TowerNode*>(node);
-		}
-	    return nullptr;
-	}
 	LetterNode* getLetterNodeByTag(Node* parent, int tag)
 	{
 	    return dynamic_cast<LetterNode*>(parent->getChildByTag(tag));
@@ -171,11 +132,7 @@ private:
 		}
 	    return nullptr;
 	}
-	TowerNode* createTower(int tag, int level); 
-	UnitNode* createUnit(int tag, int health);
 	void wordPhaseDone();
-	void buildPhaseDone();
-	void killPhaseDone();
 	void waitPhaseDone();
 	void menuPhaseDone();
 	void loseGame();
@@ -193,15 +150,11 @@ private:
 	int numLetters = 9;
 	int numHolders = numLetters*2 - 1;
 	float scale = 1.0;
-	float numRows = 6.0;
-	float numColumns = 12.0;
-	float gameRows = 6.0;
-	float gameColumns = 10.0;
 	float levelTime = 30.0;
 	int numCorners = 10;
 	int enemiesPerLevel = 8; 
 	int currentLife = 8;
-	float letterScale = 2.5;
+	float letterScale = 2.3;
 
 	void printFieldVec()
 	{

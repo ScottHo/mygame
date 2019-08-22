@@ -58,20 +58,14 @@ list(APPEND GAME_SOURCE
      Classes/GameScene.cpp
      Classes/LetterNode.cpp
      Classes/HolderNode.cpp
-     Classes/UnitNode.cpp
-     Classes/TowerNode.cpp
      Classes/WordUtils.cpp
-     Classes/TowerMenu.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
      Classes/GameScene.h
      Classes/LetterNode.h
      Classes/HolderNode.h
-     Classes/UnitNode.h
-     Classes/TowerNode.h
      Classes/WordUtils.h
-     Classes/TowerMenu.h
      )
 
 if(ANDROID)
